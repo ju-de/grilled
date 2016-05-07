@@ -6,14 +6,22 @@ var game = new Phaser.Game(1024, 640, Phaser.AUTO, '',
         render: render
     });
 
+var assets = {
+    player: { w: 108, h: 192 },
+    lion_run: { w: 102, h: 122 },
+    lion_jump: { w: 98, h: 130 }
+}
+
 function preload() {
     game.load.image('empty', 'assets/empty.png');
     game.load.image('bg', 'assets/bg.gif');
     game.load.image('ground_front', 'assets/ground_front.gif');
     game.load.image('ground_back', 'assets/ground_back.gif');
-    game.load.image('player1', 'assets/z1.gif');
-    game.load.image('player2', 'assets/z2.gif');
-    game.load.image('lion', 'assets/lion.png');
+    game.load.spritesheet('player1', 'assets/spritesheets/z1.gif', assets.player.w, assets.player.h);
+    game.load.spritesheet('player2', 'assets/spritesheets/z2.gif', assets.player.w, assets.player.h);
+    game.load.spritesheet('lion_run', 'assets/spritesheets/l1.gif', assets.lion_run.w, assets.lion_run.h);
+    game.load.spritesheet('lion_jump', 'assets/spritesheets/l2.gif', assets.lion_jump.w, assets.lion_jump.h);
+    game.load.image('fuel', 'assets/fuel.png');
 }
 
 function Player(fuel, sprite) {
@@ -25,15 +33,21 @@ function Player(fuel, sprite) {
     this.sprite.body.gravity.y = 1500;
 }
 
+var groundHeight = 64;
+var scrollSpeed = 3;
+var maxFuelAmount = 500;
+var refillFuelAmount = 200;
+
 var player1, player2;
 var collidables;
-
-var tileHeight = 64;
-var bg;
-var groundFront, groundBack, groundCollidable;
+var bg, groundFront, groundBack, groundCollidable;
 
 var lionTimer;
-var lions;
+var lionsRunning;
+var lionsJumping;
+
+var fuelTimer;
+var fuels;
 
 
 
@@ -51,24 +65,35 @@ function create() {
 
     // Draw environment
     bg = game.add.tileSprite(0, 0, game.world.width, game.world.height, 'bg');
-    groundCollidable = game.add.tileSprite(0, game.world.height - tileHeight, game.world.width, tileHeight, 'empty');
-    groundBack = game.add.tileSprite(0, game.world.height - tileHeight * 2, game.world.width, tileHeight * 2, 'ground_back');
-    groundFront = game.add.tileSprite(0, game.world.height - tileHeight * 2, game.world.width, tileHeight * 2, 'ground_front');
+    groundCollidable = game.add.tileSprite(0, game.world.height - groundHeight, game.world.width, groundHeight, 'empty');
+    groundBack = game.add.tileSprite(0, game.world.height - groundHeight * 2, game.world.width, groundHeight * 2, 'ground_back');
+    groundFront = game.add.tileSprite(0, game.world.height - groundHeight * 2, game.world.width, groundHeight * 2, 'ground_front');
 
     game.physics.arcade.enable(groundCollidable);
     groundCollidable.body.immovable = true;
     groundCollidable.body.allowGravity = false;
 
     // Init players
-    player1 = new Player(1000, game.add.sprite(500, 300, 'player1'));
-    player2 = new Player(1000, game.add.sprite(300, 300, 'player2'));
+    player1 = new Player(maxFuelAmount, game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'player1'));
     player1.sprite.scale.setTo(0.6, 0.6);
+    player1.sprite.animations.add('idle');
+    player1.sprite.animations.play('idle', 8, true, false);
+
+    player2 = new Player(maxFuelAmount, game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'player2'));
     player2.sprite.scale.setTo(0.6, 0.6);
+    player2.sprite.animations.add('idle');
+    player2.sprite.animations.play('idle', 8, true, false);
 
     // Init other game objects
-    lions = game.add.physicsGroup();
+    lionsRunning = game.add.physicsGroup();
+    lionsJumping = game.add.physicsGroup();
     lionTimer = game.time.create(false);
     renewLionTimer();
+
+    fuels = game.add.physicsGroup();
+    fuelTimer = game.time.create(false);
+    renewFuelTimer();
+
 
     fuelCounter1 = game.add.text(0, 0, 'fuel = ' + player1.fuel, { fontSize: '32px', fill: '#ff0000' });
     fuelCounter2 = game.add.text(800, 0, 'fuel = ' + player2.fuel, { fontSize: '32px', fill: '#ff0000' });
@@ -86,48 +111,93 @@ function create() {
 function renewLionTimer() {
     // Only spawn more lions if there are no more pending lions
     if (lionTimer.length <= 1) {
-        if (getRandomInt(0, 10) < 3) {
+        if (game.rnd.integerInRange(0, 10) < 3) {
             // Small chance for lions to spawn in tight groups (2-5 including the current lion)
-            for (var i = 0, groupSize = getRandomInt(1, 4); i < groupSize; i++) {
+            for (var i = 0, groupSize = game.rnd.integerInRange(1, 4); i < groupSize; i++) {
                 lionTimer.add(500 * (i + 1), renewLionTimer, this);
             }
             // Add a "regular" spawn after the group so groups don't chain together
-            lionTimer.add(getRandomInt(3000 + groupSize * 500, 7000 + groupSize * 500), renewLionTimer, this);
+            lionTimer.add(game.rnd.integerInRange(3000 + groupSize * 500, 7000 + groupSize * 500), renewLionTimer, this);
         } else {
             // Spawn lion at random intervals
-            lionTimer.add(getRandomInt(3000, 7000), renewLionTimer, this);
+            lionTimer.add(game.rnd.integerInRange(3000, 7000), renewLionTimer, this);
         }
     }
     
     if (lionTimer.running) {
         // Add new lion
-        var lion = lions.create(game.world.width, game.world.height - tileHeight * 2, 'lion');
-        lion.body.allowGravity = false;
+        if (game.rnd.integerInRange(0, 1) == 0) {
+            var lion = lionsRunning.create(game.world.width, game.world.height - groundHeight - assets.lion_run.h, 'lion_run');
+            lion.body.allowGravity = false;
+            lion.animations.add('run');
+            lion.animations.play('run', 8, true, false);
+        } else {
+            var lion = lionsJumping.create(game.world.width, game.world.height - groundHeight - assets.lion_jump.h, 'lion_jump');
+            lion.body.allowGravity = false;
+            lion.animations.add('jump');
+            lion.animations.play('jump', 8, true, false);
+        }
+        
     } else {
         lionTimer.start();
+    }
+}
+
+function renewFuelTimer() {
+
+    fuelTimer.add(game.rnd.integerInRange(10000, 15000), renewFuelTimer, this);
+
+    if (fuelTimer.running) {
+        var fuelBox = fuels.create(game.world.width, game.rnd.integerInRange(0, 400), 'fuel');
+        fuelBox.body.allowGravity = false;
+    } else {
+        fuelTimer.start();
     }
 }
 
 function update() {
 
     // Scroll the environment
-    groundFront.tilePosition.x -= 3;
-    groundBack.tilePosition.x -= 3;
+    groundFront.tilePosition.x -= scrollSpeed;
+    groundBack.tilePosition.x -= scrollSpeed;
 
-    lions.forEach(function(lion) {
-        lion.body.position.x -= 5;
+    lionsRunning.forEach(function(lion) {
+        lion.body.position.x -= scrollSpeed + 3;
     });
-    if (lions.children.length > 0) {
-        // Kill lion once it leaves the screen
-        var firstChild = lions.getChildAt(0);
+    lionsJumping.forEach(function(lion) {
+        lion.body.position.x -= scrollSpeed;
+    });
+
+    // Remove lion once it leaves the screen
+    if (lionsRunning.children.length > 0) {
+        var firstChild = lionsRunning.getChildAt(0);
         if (firstChild.body.position.x + firstChild.width < 0) {
             firstChild.kill();
-            lions.removeChild(firstChild);
+            lionsRunning.removeChild(firstChild);
+        }
+    }
+    if (lionsJumping.children.length > 0) {
+        var firstChild = lionsJumping.getChildAt(0);
+        if (firstChild.body.position.x + firstChild.width < 0) {
+            firstChild.kill();
+            lionsJumping.removeChild(firstChild);
+        }
+    }
+
+    fuels.forEach(function(fuel) {
+        fuel.body.position.x -= scrollSpeed;
+    });
+    if (fuels.children.length > 0) {
+        // Kill fuel once it leaves the screen
+        var firstChild = fuels.getChildAt(0);
+        if (firstChild.body.position.x + firstChild.width < 0) {
+            firstChild.kill();
+            fuels.removeChild(firstChild);
         }
     }
     
 
-    // Collision between players; disable for now
+    // Collision integerInRange players; disable for now
     // game.physics.arcade.collide(player1.sprite, player2.sprite);
 
     if (player1.sprite.alive) {
@@ -151,12 +221,15 @@ function updatePlayer(player, controlKeys) {
     var playerSprite = player.sprite;
     var velocity = playerSprite.body.velocity;
 
-    // Check collision between player and ground
+    var isRocketFired = false;
+
+    // Check collision integerInRange player and ground
     game.physics.arcade.collide(playerSprite, groundCollidable);
 
     // Fire rocket
     // Don't allow flying if something is on top of the player
     if (controlKeys.up.isDown && player.fuel > 0 && !playerSprite.body.touching.up) {
+        isRocketFired = true;
 
         // Horizontal movement is faster with rocket
         horizontalMoveSpeed = 400;
@@ -170,11 +243,20 @@ function updatePlayer(player, controlKeys) {
         player.fuel--;
     }
 
+    // Reset sprite rotation
+    playerSprite.rotation = 0;
+
     // Don't allow movement if something is blocking player
     if (controlKeys.left.isDown && !playerSprite.body.touching.left) {
         velocity.x = -horizontalMoveSpeed;
+        if (isRocketFired) {
+            playerSprite.rotation = -0.2;
+        }
     } else if (controlKeys.right.isDown && !playerSprite.body.touching.right) {
         velocity.x = horizontalMoveSpeed;
+        if (isRocketFired) {
+            playerSprite.rotation = 0.2;
+        }
     } else if (playerSprite.body.touching.down || playerSprite.body.blocked.down) {
         // Player is standing on top of something solid, stop horizontal sliding
         velocity.x = 0;
@@ -193,17 +275,30 @@ function updatePlayer(player, controlKeys) {
     var position = playerSprite.body.position;
 
     // Make sure player doesn't fall through the ground
-    if (position.y + playerSprite.height > game.world.height - tileHeight) {
-        position.set(position.x, game.world.height - tileHeight - playerSprite.height);
+    if (position.y + playerSprite.height > game.world.height - groundHeight) {
+        position.set(position.x, game.world.height - groundHeight - playerSprite.height);
         velocity.y = 0;
     }
 
-    // Check if player is touching a lion
-    game.physics.arcade.overlap(playerSprite, lions, playerDeath, null, this);
+    // Check if player is in contact with a lion
+    game.physics.arcade.overlap(playerSprite, lionsRunning, playerDeath, null, this);
+    game.physics.arcade.overlap(playerSprite, lionsJumping, playerDeath, null, this);
+
+    // Check if player is in contact with a fuel box
+    if (game.physics.arcade.overlap(playerSprite, fuels, collectFuel, null, this)) {
+        player.fuel += refillFuelAmount;
+        if (player.fuel > maxFuelAmount) {
+            player.fuel = maxFuelAmount;
+        }
+    }
 }
 
 function playerDeath(playerSprite, lion) {
     playerSprite.kill();
+}
+
+function collectFuel(playerSprite, fuel) {
+    fuel.kill();
 }
 
 function render() {
@@ -211,8 +306,6 @@ function render() {
     // game.debug.bodyInfo(player1.sprite, 0, 100);
     // game.debug.bodyInfo(player2.sprite, 0, 250);
     game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
-}
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
+    game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
+    
 }
