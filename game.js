@@ -7,6 +7,7 @@ var game = new Phaser.Game(1024, 640, Phaser.AUTO, '',
     });
 
 function preload() {
+    game.load.image('empty', 'assets/empty.png');
     game.load.image('bg', 'assets/bg.gif');
     game.load.image('ground_front', 'assets/ground_front.gif');
     game.load.image('ground_back', 'assets/ground_back.gif');
@@ -21,7 +22,7 @@ function Player(fuel, sprite) {
 
     game.physics.enable(this.sprite);
     this.sprite.body.collideWorldBounds = true;
-    this.sprite.body.gravity.y = 2000;
+    this.sprite.body.gravity.y = 1500;
 }
 
 var player1, player2;
@@ -29,8 +30,7 @@ var collidables;
 
 var tileHeight = 64;
 var bg;
-var groundCollidable;
-var groundBack;
+var groundFront, groundBack, groundCollidable;
 
 var lionTimer;
 var lions = [];
@@ -51,8 +51,9 @@ function create() {
 
     // Draw environment
     bg = game.add.tileSprite(0, 0, game.world.width, game.world.height, 'bg');
+    groundCollidable = game.add.tileSprite(0, game.world.height - tileHeight, game.world.width, tileHeight, 'empty');
     groundBack = game.add.tileSprite(0, game.world.height - tileHeight * 2, game.world.width, tileHeight * 2, 'ground_back');
-    groundCollidable = game.add.tileSprite(0, game.world.height - tileHeight, game.world.width, tileHeight, 'ground_front');
+    groundFront = game.add.tileSprite(0, game.world.height - tileHeight * 2, game.world.width, tileHeight * 2, 'ground_front');
 
     game.physics.enable(groundCollidable);
     groundCollidable.body.immovable = true;
@@ -61,6 +62,8 @@ function create() {
     // Init players
     player1 = new Player(1000, game.add.sprite(500, 300, 'player1'));
     player2 = new Player(1000, game.add.sprite(300, 300, 'player2'));
+    player1.sprite.scale.setTo(0.6, 0.6);
+    player2.sprite.scale.setTo(0.6, 0.6);
 
     // Init other game objects
     lionTimer = game.time.create(false);
@@ -110,15 +113,14 @@ function renewLionTimer() {
 function update() {
 
     // Scroll the environment
-    groundCollidable.tilePosition.x -= 3;
+    groundFront.tilePosition.x -= 3;
     groundBack.tilePosition.x -= 3;
 
     for (var i = 0; i < lions.length; i++) {
-        lions[i].body.position.x -= 3;
+        lions[i].body.position.x -= 5;
     }
     if (lions.length > 0 && lions[0].body.position.x + lions[0].width < 0) {
         lions.splice(0, 1);
-        console.log('removed lion');
     }
 
     // Collision between players; disable for now
@@ -134,8 +136,8 @@ function update() {
 function updatePlayer(player, controlKeys) {
 
     // Movement physics settings
-    var upAcceleration = 150;
-    var upSpeedLimit = 800;
+    var upAcceleration = 100;
+    var upSpeedLimit = 500;
     var horizontalMoveSpeed = 200;
 
     var playerSprite = player.sprite;
