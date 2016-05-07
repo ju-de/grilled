@@ -12,6 +12,7 @@ function preload() {
     game.load.image('ground_back', 'assets/ground_back.gif');
     game.load.image('player1', 'assets/z1.gif');
     game.load.image('player2', 'assets/z2.gif');
+    game.load.image('lion', 'assets/lion.png');
 }
 
 function Player(fuel, sprite) {
@@ -30,6 +31,12 @@ var tileHeight = 64;
 var bg;
 var groundCollidable;
 var groundBack;
+
+var lionTimer;
+var lions = [];
+
+
+
 
 var fuelCounter1, fuelCounter2;
 
@@ -51,9 +58,13 @@ function create() {
     groundCollidable.body.immovable = true;
     groundCollidable.body.allowGravity = false;
 
+    // Init players
     player1 = new Player(1000, game.add.sprite(500, 300, 'player1'));
     player2 = new Player(1000, game.add.sprite(300, 300, 'player2'));
 
+    // Init other game objects
+    lionTimer = game.time.create(false);
+    renewLionTimer();
 
     fuelCounter1 = game.add.text(0, 0, 'fuel = ' + player1.fuel, { fontSize: '32px', fill: '#ff0000' });
     fuelCounter2 = game.add.text(800, 0, 'fuel = ' + player2.fuel, { fontSize: '32px', fill: '#ff0000' });
@@ -68,11 +79,47 @@ function create() {
     controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.D);
 }
 
+function renewLionTimer() {
+    // Only spawn more lions if there are no more pending lions
+    if (lionTimer.length <= 1) {
+        if (getRandomInt(0, 10) < 3) {
+            // Small chance for lions to spawn in tight groups (2-5 including the current lion)
+            var groupSize = getRandomInt(1, 4);
+            for (var i = 0; i < groupSize; i++) {
+                lionTimer.add(500 * (i + 1), renewLionTimer, this);
+            }
+            // Add a "regular" spawn after the group so groups don't chain together
+            lionTimer.add(getRandomInt(3000, 7000), renewLionTimer, this);
+        } else {
+            // Spawn lion at random intervals
+            lionTimer.add(getRandomInt(3000, 7000), renewLionTimer, this);
+        }
+    }
+    
+    if (lionTimer.running) {
+        // Add new lion
+        var lion = game.add.sprite(game.world.width, game.world.height - tileHeight * 2, 'lion');
+        game.physics.enable(lion);
+        lion.body.allowGravity = false;
+        lions.push(lion);
+    } else {
+        lionTimer.start();
+    }
+}
+
 function update() {
 
     // Scroll the environment
     groundCollidable.tilePosition.x -= 3;
     groundBack.tilePosition.x -= 3;
+
+    for (var i = 0; i < lions.length; i++) {
+        lions[i].body.position.x -= 3;
+    }
+    if (lions.length > 0 && lions[0].body.position.x + lions[0].width < 0) {
+        lions.splice(0, 1);
+        console.log('removed lion');
+    }
 
     // Collision between players; disable for now
     // game.physics.arcade.collide(player1.sprite, player2.sprite);
@@ -144,6 +191,11 @@ function updatePlayer(player, controlKeys) {
 
 function render() {
     // Debugging displays
-    game.debug.bodyInfo(player1.sprite, 0, 100);
-    game.debug.bodyInfo(player2.sprite, 0, 250);
+    // game.debug.bodyInfo(player1.sprite, 0, 100);
+    // game.debug.bodyInfo(player2.sprite, 0, 250);
+    game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
+}
+
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
 }
