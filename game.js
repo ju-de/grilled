@@ -89,7 +89,7 @@ function renewLionTimer() {
                 lionTimer.add(500 * (i + 1), renewLionTimer, this);
             }
             // Add a "regular" spawn after the group so groups don't chain together
-            lionTimer.add(getRandomInt(3000, 7000), renewLionTimer, this);
+            lionTimer.add(getRandomInt(3000 + groupSize * 500, 7000 + groupSize * 500), renewLionTimer, this);
         } else {
             // Spawn lion at random intervals
             lionTimer.add(getRandomInt(3000, 7000), renewLionTimer, this);
