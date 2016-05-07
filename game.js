@@ -7,7 +7,9 @@ var game = new Phaser.Game(1024, 640, Phaser.AUTO, '',
     });
 
 function preload() {
-    game.load.image('ground', 'assets/ground.png');
+    game.load.image('bg', 'assets/bg.gif');
+    game.load.image('ground_front', 'assets/ground_front.gif');
+    game.load.image('ground_back', 'assets/ground_back.gif');
     game.load.image('player1', 'assets/z1.gif');
     game.load.image('player2', 'assets/z2.gif');
 }
@@ -15,11 +17,19 @@ function preload() {
 function Player(fuel, sprite) {
     this.fuel = fuel;
     this.sprite = sprite;
+
+    game.physics.enable(this.sprite);
+    this.sprite.body.collideWorldBounds = true;
+    this.sprite.body.gravity.y = 2000;
 }
 
 var player1, player2;
 var collidables;
-var ground;
+
+var tileHeight = 64;
+var bg;
+var groundCollidable;
+var groundBack;
 
 var fuelCounter1, fuelCounter2;
 
@@ -32,21 +42,17 @@ function create() {
     // Enable physics for all objects in group
     collidables = game.add.physicsGroup();
 
-    ground = game.add.sprite(0, game.world.height - 50, 'ground');
-    game.physics.enable(ground);
-    ground.body.immovable = true;
+    // Draw environment
+    bg = game.add.tileSprite(0, 0, game.world.width, game.world.height, 'bg');
+    groundBack = game.add.tileSprite(0, game.world.height - tileHeight * 2, game.world.width, tileHeight * 2, 'ground_back');
+    groundCollidable = game.add.tileSprite(0, game.world.height - tileHeight, game.world.width, tileHeight, 'ground_front');
+
+    game.physics.enable(groundCollidable);
+    groundCollidable.body.immovable = true;
+    groundCollidable.body.allowGravity = false;
 
     player1 = new Player(1000, game.add.sprite(500, 300, 'player1'));
     player2 = new Player(1000, game.add.sprite(300, 300, 'player2'));
-
-    game.physics.enable(player1.sprite);
-    game.physics.enable(player2.sprite);
-
-    player1.sprite.body.collideWorldBounds = true;
-    player1.sprite.body.gravity.y = 2000;
-    player2.sprite.body.collideWorldBounds = true;
-    player2.sprite.body.gravity.y = 2000;
-
 
 
     fuelCounter1 = game.add.text(0, 0, 'fuel = ' + player1.fuel, { fontSize: '32px', fill: '#ff0000' });
@@ -64,10 +70,15 @@ function create() {
 
 function update() {
 
+    // Scroll the environment
+    groundCollidable.tilePosition.x -= 3;
+    groundBack.tilePosition.x -= 3;
+
+    // Collision between players; disable for now
+    // game.physics.arcade.collide(player1.sprite, player2.sprite);
+
     updatePlayer(player1, controlKeys1);
     updatePlayer(player2, controlKeys2);
-
-    game.physics.arcade.collide(player1.sprite, player2.sprite);
 
     fuelCounter1.text = 'fuel = ' + player1.fuel;
     fuelCounter2.text = 'fuel = ' + player2.fuel;
@@ -81,45 +92,54 @@ function updatePlayer(player, controlKeys) {
     var horizontalMoveSpeed = 200;
 
     var playerSprite = player.sprite;
-    var velx = playerSprite.body.velocity.x;
-    var vely = playerSprite.body.velocity.y;
+    var velocity = playerSprite.body.velocity;
 
-    var isOnGround = game.physics.arcade.collide(playerSprite, ground);
+    // Check collision between player and ground
+    game.physics.arcade.collide(playerSprite, groundCollidable);
 
+    // Fire rocket
+    // Don't allow flying if something is on top of the player
+    if (controlKeys.up.isDown && player.fuel > 0 && !playerSprite.body.touching.up) {
 
-    if (controlKeys.up.isDown && player.fuel > 0) {
-        // Fire rocket
-
+        // Horizontal movement is faster with rocket
         horizontalMoveSpeed = 400;
         
         // Cap the upwards velocity
-        if (vely - upAcceleration < -upSpeedLimit) {
-            playerSprite.body.velocity.y = -upSpeedLimit;
+        if (velocity.y - upAcceleration < -upSpeedLimit) {
+            velocity.y = -upSpeedLimit;
         } else {
-            playerSprite.body.velocity.y -= upAcceleration;
+            velocity.y -= upAcceleration;
         }
         player.fuel--;
     }
 
-    if (controlKeys.left.isDown) {
-        playerSprite.body.velocity.x = -horizontalMoveSpeed;
-    } else if (controlKeys.right.isDown) {
-        playerSprite.body.velocity.x = horizontalMoveSpeed;
-    } else if (isOnGround) {
-        // Player is on the ground, stop horizontal movement
-        playerSprite.body.velocity.x = 0;
+    // Don't allow movement if something is blocking player
+    if (controlKeys.left.isDown && !playerSprite.body.touching.left) {
+        velocity.x = -horizontalMoveSpeed;
+    } else if (controlKeys.right.isDown && !playerSprite.body.touching.right) {
+        velocity.x = horizontalMoveSpeed;
+    } else if (playerSprite.body.touching.down || playerSprite.body.blocked.down) {
+        // Player is standing on top of something solid, stop horizontal sliding
+        velocity.x = 0;
     } else {
         // Player is in the air
         // Drag slows horizontal movement
-        if (Math.abs(velx) <= 3 ) {
-            playerSprite.body.velocity.x = 0;
-        } else if (velx > 0) {
-            playerSprite.body.velocity.x -= 3;
-        } else if (velx < 0) {
-            playerSprite.body.velocity.x += 3;
+        if (Math.abs(velocity.x) <= 3 ) {
+            velocity.x = 0;
+        } else if (velocity.x > 0) {
+            velocity.x -= 3;
+        } else if (velocity.x < 0) {
+            velocity.x += 3;
         }
     }
 
+    var position = playerSprite.body.position;
+
+    // Make sure player doesn't fall through the ground
+    if (position.y + playerSprite.height > game.world.height - tileHeight) {
+        position.set(position.x, game.world.height - tileHeight - playerSprite.height);
+        velocity.y = 0;
+    }
 }
 
 function render() {
