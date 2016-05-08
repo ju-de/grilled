@@ -61,7 +61,6 @@ var maxFuelAmount = 500;
 var refillFuelAmount = 200;
 
 var player1, player2;
-var collidables;
 var bg, groundFront, groundBack, groundCollidable;
 
 var gameTimer;
@@ -76,6 +75,9 @@ var fuels;
 
 var goat, pole;
 var goatTimer;
+
+var meatTimer;
+var meats;
 
 var fuelBar1, fuelBar2;
 var scoreCounter1, scoreCounter2;
@@ -93,6 +95,14 @@ var spawnSettings = {
     lionGroupChance: 0,
     lionJumpingSpawn: 2,
     lionJumpingChance: 1,
+    fuelInterval: {
+        min: 10000,
+        max: 15000
+    },
+    meatInterval: {
+        min: 1000,
+        max: 5000
+    },
     goatInterval: {
         min: 20000,
         max: 25000
@@ -115,7 +125,7 @@ function Player(fuel, fireSprite, sprite) {
 
     game.physics.arcade.enable(this.sprite);
     this.sprite.body.collideWorldBounds = true;
-    this.sprite.body.gravity.y = 1500;    
+    this.sprite.body.gravity.y = 1500;
 
     this.addFuel = function() {
         this.fuel += refillFuelAmount;
@@ -139,9 +149,6 @@ function createScoreCounters() {
 
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
-
-    // Enable physics for all objects in group
-    collidables = game.add.physicsGroup();
 
     // Draw environment
     bg = game.add.tileSprite(0, 0, game.world.width, game.world.height, 'bg');
@@ -176,6 +183,10 @@ function create() {
     fuelTimer = game.time.create(false);
     renewFuelTimer();
 
+    meats = game.add.physicsGroup();
+    meatTimer = game.time.create(false);
+    renewMeatTimer();
+
     goatTimer = game.time.create(false);
     renewGopTimer();
 
@@ -199,12 +210,13 @@ function create() {
     emitter = game.add.emitter(0, 0, 100);
 
     emitter.makeParticles('meat', 0, 100, true, false);
-    emitter.gravity = 500;
+    emitter.gravity = 1500;
     emitter.bounce.setTo(0.5, 0.5);
 
     emitter.minRotation = 0;
     emitter.maxRotation = 0;
-
+    emitter.setXSpeed(-400, 400);
+    emitter.setYSpeed(-700, -300);
 }
 
 function renewGameTimer() {
@@ -224,6 +236,10 @@ function renewGameTimer() {
         if (difficultyLevel % 2 == 0) {
             if (spawnSettings.lionJumpingSpawn < 5) {
                 spawnSettings.lionJumpingSpawn++;
+            }
+            if (spawnSettings.fuelInterval.min > 5000) {
+                spawnSettings.fuelInterval.min -= 1000;
+                spawnSettings.fuelInterval.max -= 1000;
             }
         } else {
             if (spawnSettings.lionInterval.min > 1000) {
@@ -286,7 +302,7 @@ function renewLionTimer() {
 }
 
 function renewFuelTimer() {
-    fuelTimer.add(game.rnd.integerInRange(10000, 15000), renewFuelTimer, this);
+    fuelTimer.add(game.rnd.integerInRange(spawnSettings.fuelInterval.min, spawnSettings.fuelInterval.max), renewFuelTimer, this);
 
     if (fuelTimer.running) {
         var fuelBox = fuels.create(game.world.width, game.rnd.integerInRange(0, 400), 'fuel');
@@ -295,6 +311,22 @@ function renewFuelTimer() {
         fuelBox.animations.play('idle', 8, true, false);
     } else {
         fuelTimer.start();
+    }
+}
+
+function renewMeatTimer() {
+    meatTimer.add(game.rnd.integerInRange(spawnSettings.meatInterval.min, spawnSettings.meatInterval.max), renewMeatTimer, this);
+
+    if (meatTimer.running) {
+        // Spawn cluster of 2-8
+        for (var i = 0, groupSize = game.rnd.integerInRange(2, 8), height = game.rnd.integerInRange(0, game.world.height - groundHeight - assets.meat.h); i < groupSize; i++) {
+            var meat = meats.create(game.world.width + i * 50, height, 'meat');
+            meat.body.allowGravity = false;
+            meat.animations.add('idle');
+            meat.animations.play('idle', 8, true, false);
+        }
+    } else {
+        meatTimer.start();
     }
 }
 
@@ -370,6 +402,18 @@ function update() {
         }
     }
 
+    meats.forEach(function(meat) {
+        meat.body.position.x -= scrollSpeed;
+    });
+
+    if (meats.children.length > 0) {
+        var firstChild = meats.getChildAt(0);
+        if (firstChild.body.position.x + firstChild.width < 0) {
+            firstChild.kill();
+            meats.removeChild(firstChild);
+        }
+    }
+
     if (goat != null && goat.alive) {
         goat.body.position.x -= scrollSpeed;
         if (goat.body.position.x + goat.width < 0) {
@@ -384,8 +428,6 @@ function update() {
         }
     }
 
-
-    // Collision integerInRange players; disable for now
     game.physics.arcade.collide(player1.sprite, player2.sprite);
 
     if (player1.sprite.alive) {
@@ -516,7 +558,8 @@ function updatePlayer(player, controlKeys) {
     game.physics.arcade.overlap(playerSprite, goat, collectGoat, null, this);
 
     // Meat collection
-    game.physics.arcade.collide(playerSprite, emitter, collectMeat, null, this);
+    game.physics.arcade.overlap(playerSprite, meats, collectMeat, null, this);
+    game.physics.arcade.overlap(playerSprite, emitter, collectMeat, null, this);
 
     function playerDeath(playerSprite, lion) {
 
@@ -526,7 +569,7 @@ function updatePlayer(player, controlKeys) {
         emitter.x = playerSprite.x;
         emitter.y = playerSprite.y;
 
-        emitter.start(true, 8000, 0, 8, 20);
+        emitter.start(true, 8000, 0, 8);
 
         emitter.forEach(function(meat) {
 
@@ -571,5 +614,6 @@ function render() {
     game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
     game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
     game.debug.text('next goat in: ' + goatTimer.duration.toFixed(0), 16, 200);
-    game.debug.text('next difficulty in: ' + gameTimer.duration.toFixed(0), 16, 250);
+    game.debug.text('next meat in: ' + meatTimer.duration.toFixed(0), 16, 250)
+    game.debug.text('next difficulty in: ' + gameTimer.duration.toFixed(0), 16, 300);
 }
