@@ -249,6 +249,19 @@ function renewGopTimer() {
     }
 }
 
+function updateMeat(meat, ground) {
+
+    console.log('meat', meat.y, groundHeight);
+
+    // meat.frame++;
+    // meat.x -= scrollSpeed;
+
+    // if ( meat.y + meat.height > game.world.height - groundHeight )
+    //     meat.y = groundHeight - meat.height;
+    
+
+}
+
 function update() {
 
     // Scroll the environment
@@ -257,6 +270,7 @@ function update() {
 
     // Check collisions between jumping lions and the ground
     game.physics.arcade.collide(groundCollidable, lionsJumping);
+    game.physics.arcade.collide(emitter, groundCollidable, updateMeat, null, this);
 
     lionsRunning.forEach(function(lion) {
         lion.body.position.x -= scrollSpeed + 3;
@@ -441,6 +455,9 @@ function updatePlayer(player, controlKeys) {
     // Goat collection
     game.physics.arcade.overlap(playerSprite, goat, collectGoat, null, this);
 
+    // Meat collection
+    game.physics.arcade.collide(playerSprite, emitter, collectMeat, null, this);
+
     function playerDeath(playerSprite, lion) {
 
         playerSprite.kill();
@@ -476,6 +493,12 @@ function updatePlayer(player, controlKeys) {
 
     function collectGoat(playerSprite, goat) {
         goat.kill();
+        player.score += 50;
+        updateScoreCounters();
+    }
+
+    function collectMeat(playerSprite, meat) {
+        meat.kill();
         player.score += 50;
         updateScoreCounters();
     }
