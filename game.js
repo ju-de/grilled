@@ -83,6 +83,7 @@ var meats;
 
 var fuelBar1, fuelBar2;
 var scoreCounter1, scoreCounter2;
+var grilledText1, grilledText2;
 
 var title;
 var keys1, keys2;
@@ -276,6 +277,17 @@ function createText() {
     title.stroke = '#78686F';
     title.strokeThickness = 4;
     title.fill = '#FFFFFF';
+
+    grilledText1 = game.add.text(128, 47, 'GRILLED');
+    grilledText1.font = fontName;
+    grilledText1.fontSize = 16;
+    grilledText1.fill = '#78686F';
+    grilledText1.visible = false;
+    grilledText2 = game.add.text(game.world.width - 194, 47, 'GRILLED');
+    grilledText2.font = fontName;
+    grilledText2.fontSize = 16;
+    grilledText2.fill = '#78686F';
+    grilledText2.visible = false;
 }
 
 function update() {
@@ -309,8 +321,8 @@ function update() {
 
 function startGame() {
     title.visible = false;
-    keys1.kill();
-    keys2.kill();
+    keys1.visible = false;
+    keys2.visible = false;
 
     renewGameTimer();
     spawnLion();
@@ -322,6 +334,9 @@ function startGame() {
     if (!player1.sprite.alive && !player2.sprite.alive) {
         player1.revive(100, 0);
         player2.revive(200, 0);
+
+        grilledText1.visible = false;
+        grilledText2.visible = false;
 
         lionsRunning.forEach(function(lion) {
             lion.kill();
@@ -352,6 +367,8 @@ function startGame() {
 function gameOver() {
     title.text = 'Game Over! Press SPACE to restart'
     title.visible = true;
+    keys1.visible = true;
+    keys2.visible = true;
 
     resetSpawnSettings();
     gameTimer.stop();
@@ -706,12 +723,12 @@ function updatePlayer(player, controlKeys) {
         });
 
         if ( playerSprite === player1.sprite ){
-            // game.add.text(120, 18, 'GRILLED');
+            grilledText1.visible = true;
             game.add.sprite(12, 12, 'player2_gameover');
         }
 
         if ( playerSprite === player2.sprite ){
-            // game.add.text(120, 18, 'GRILLED');
+            grilledText2.visible = true;
             game.add.sprite(game.world.width - 54 - 12, 12, 'player1_gameover');
         }
 
