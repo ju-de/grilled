@@ -7,10 +7,12 @@ var game = new Phaser.Game(1024, 640, Phaser.AUTO, '',
     });
 
 var assets = {
-    player: { w: 108, h: 192 },
-    lion_run: { w: 102, h: 122 },
-    lion_jump: { w: 98, h: 130 },
-    fuel: { w: 28, h: 32}    
+    player: {w: 108, h: 192},
+    lion_run: {w: 102, h: 122},
+    lion_jump: {w: 98, h: 130},
+    fuel: {w: 28, h: 32},
+    goat: {w: 54, h: 60},
+    pole: {w: 8, h: 64}
 }
 
 function preload() {
@@ -23,6 +25,8 @@ function preload() {
     game.load.spritesheet('lion_run', 'assets/spritesheets/l1.gif', assets.lion_run.w, assets.lion_run.h);
     game.load.spritesheet('lion_jump', 'assets/spritesheets/l2.gif', assets.lion_jump.w, assets.lion_jump.h);
     game.load.spritesheet('fuel', 'assets/spritesheets/fuel.gif', assets.fuel.w, assets.fuel.h);
+    game.load.spritesheet('goat', 'assets/spritesheets/goat.gif', assets.goat.w, assets.goat.h);
+    game.load.image('pole', 'assets/pole.gif', assets.pole.w, assets.pole.h);
 }
 
 var groundHeight = 64;
@@ -41,7 +45,8 @@ var lionsJumping;
 var fuelTimer;
 var fuels;
 
-
+var goat, pole;
+var goatTimer;
 
 
 var fuelCounter1, fuelCounter2;
@@ -102,6 +107,8 @@ function create() {
     fuelTimer = game.time.create(false);
     renewFuelTimer();
 
+    goatTimer = game.time.create(false);
+    renewGopTimer();
 
     fuelCounter1 = game.add.text(0, 0, 'fuel = ' + player1.fuel, { fontSize: '32px', fill: '#ff0000' });
     fuelCounter2 = game.add.text(800, 0, 'fuel = ' + player2.fuel, { fontSize: '32px', fill: '#ff0000' });
@@ -152,7 +159,6 @@ function renewLionTimer() {
 }
 
 function renewFuelTimer() {
-
     fuelTimer.add(game.rnd.integerInRange(10000, 15000), renewFuelTimer, this);
 
     if (fuelTimer.running) {
@@ -162,6 +168,23 @@ function renewFuelTimer() {
         fuelBox.animations.play('idle', 8, true, false);
     } else {
         fuelTimer.start();
+    }
+}
+
+function renewGopTimer() {
+    goatTimer.add(game.rnd.integerInRange(9000, 10000), renewGopTimer, this);
+
+    if (goatTimer.running) {
+        goat = game.add.sprite(game.world.width, game.world.height - groundHeight - assets.pole.h - assets.goat.h, 'goat');
+        pole = game.add.sprite(game.world.width + 23, game.world.height - groundHeight - assets.pole.h, 'pole');
+        game.physics.arcade.enable(goat);
+        game.physics.arcade.enable(pole);
+        goat.body.allowGravity = false;
+        pole.body.allowGravity = false;
+        goat.animations.add('idle');
+        goat.animations.play('idle', 8, true, false);
+    } else {
+        goatTimer.start();
     }
 }
 
@@ -217,7 +240,21 @@ function update() {
             fuels.removeChild(firstChild);
         }
     }
+
+    if (goat != null && goat.alive) {
+        goat.body.position.x -= scrollSpeed;
+        if (goat.body.position.x + goat.width < 0) {
+            goat.kill();
+        }
+    }
     
+    if (pole != null && pole.alive) {
+        pole.body.position.x -= scrollSpeed;
+        if (pole.body.position.x + pole.width < 0) {
+            pole.kill();
+        }
+    }
+
 
     // Collision integerInRange players; disable for now
     // game.physics.arcade.collide(player1.sprite, player2.sprite);
@@ -330,12 +367,19 @@ function updatePlayer(player, controlKeys) {
     game.physics.arcade.overlap(playerSprite, lionsRunning, playerDeath, null, this);
     game.physics.arcade.overlap(playerSprite, lionsJumping, playerDeath, null, this);
 
-    // Check if player is in contact with a fuel box
+    // Fuel collection
     game.physics.arcade.overlap(playerSprite, fuels, 
         function(playerSprite, fuel) {
             fuel.kill();
             player.addFuel();
         }, 
+        null, this);
+
+    // Goat collection
+    game.physics.arcade.overlap(playerSprite, goat,
+        function(playerSprite, goat) {
+            goat.kill();
+        },
         null, this);
 }
 
@@ -349,5 +393,5 @@ function render() {
     // game.debug.bodyInfo(player2.sprite, 0, 250);
     game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
     game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
-    
+    game.debug.text('next goat in: ' + goatTimer.duration.toFixed(0), 16, 200);
 }
