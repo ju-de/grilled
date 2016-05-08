@@ -16,7 +16,22 @@ var assets = {
     fire: {w: 108, h: 256}
 }
 
+var fontName = 'Share Tech Mono';
+
+// http://phaser.io/examples/v2/text/google-webfonts
+WebFontConfig = {
+    active: function() { 
+        // Need delay for some reason
+        game.time.events.add(200, createText, this);
+    },
+    google: {
+        families: [fontName]
+    }
+};
+
 function preload() {
+    game.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
+
     game.load.image('empty', 'assets/empty.png');
     game.load.image('bg', 'assets/bg.gif');
     game.load.image('ground_front', 'assets/ground_front.gif');
@@ -30,6 +45,9 @@ function preload() {
     game.load.image('pole', 'assets/pole.gif');
     game.load.spritesheet('fire1', 'assets/spritesheets/fire1.gif', assets.fire.w, assets.fire.h);
     game.load.spritesheet('fire2', 'assets/spritesheets/fire2.gif', assets.fire.w, assets.fire.h);
+    game.load.image('player1_label', 'assets/indicator_ref_1.gif');
+    game.load.image('player2_label', 'assets/indicator_ref_2.gif');
+    game.load.image('fuel_bar', 'assets/bar.gif');
 }
 
 var groundHeight = 64;
@@ -51,14 +69,15 @@ var fuels;
 var goat, pole;
 var goatTimer;
 
-
-var fuelCounter1, fuelCounter2;
+var fuelBar1, fuelBar2;
+var scoreCounter1, scoreCounter2;
 
 var controlKeys1 = {};
 var controlKeys2 = {};
 
 function Player(fuel, fireSprite, sprite) {
     this.fuel = fuel;
+    this.score = 0;
 
     this.fireSprite = fireSprite;
     this.fireSprite.scale.setTo(0.6, 0.6);
@@ -80,6 +99,13 @@ function Player(fuel, fireSprite, sprite) {
             this.fuel = maxFuelAmount;
         }
     }
+}
+
+function createText() {
+    // scoreCounter1 = game.add.text(0, 50, 'Score: ' + player1.score);
+    // scoreCounter1.font = fontName;
+    // scoreCounter1.fontSize = 22;
+    // scoreCounter1.fill = '#ff0000';
 }
 
 function create() {
@@ -121,17 +147,23 @@ function create() {
     goatTimer = game.time.create(false);
     renewGopTimer();
 
-    fuelCounter1 = game.add.text(0, 0, 'fuel = ' + player1.fuel, { fontSize: '32px', fill: '#ff0000' });
-    fuelCounter2 = game.add.text(800, 0, 'fuel = ' + player2.fuel, { fontSize: '32px', fill: '#ff0000' });
+    game.add.sprite(0, 5, 'player1_label');
+    game.add.sprite(game.world.width - 256, 5, 'player2_label');
+
+    fuelBar1 = game.add.sprite(81, 50, 'fuel_bar');
+    fuelBar1.scale.setTo(160, 1);
+    fuelBar2 = game.add.sprite(game.world.width - 85, 50, 'fuel_bar');
+    fuelBar2.scale.setTo(-160, 1);
 
 
-    controlKeys1.up = game.input.keyboard.addKey(Phaser.Keyboard.UP);
-    controlKeys1.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
-    controlKeys1.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+    controlKeys1.up = game.input.keyboard.addKey(Phaser.Keyboard.W);
+    controlKeys1.left = game.input.keyboard.addKey(Phaser.Keyboard.A);
+    controlKeys1.right = game.input.keyboard.addKey(Phaser.Keyboard.D);
 
-    controlKeys2.up = game.input.keyboard.addKey(Phaser.Keyboard.W);
-    controlKeys2.left = game.input.keyboard.addKey(Phaser.Keyboard.A);
-    controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.D);
+    controlKeys2.up = game.input.keyboard.addKey(Phaser.Keyboard.UP);
+    controlKeys2.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
+    controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+
 }
 
 function renewLionTimer() {
@@ -268,17 +300,17 @@ function update() {
 
 
     // Collision integerInRange players; disable for now
-    // game.physics.arcade.collide(player1.sprite, player2.sprite);
+    game.physics.arcade.collide(player1.sprite, player2.sprite);
 
     if (player1.sprite.alive) {
         updatePlayer(player1, controlKeys1);
+        fuelBar1.scale.setTo(player1.fuel * 160 / maxFuelAmount, 1);
     }
     if (player2.sprite.alive) {
         updatePlayer(player2, controlKeys2);
+        fuelBar2.scale.setTo(- player2.fuel * 160 / maxFuelAmount, 1);
     }
-
-    fuelCounter1.text = 'fuel = ' + player1.fuel;
-    fuelCounter2.text = 'fuel = ' + player2.fuel;
+    
 }
 
 function updatePlayer(player, controlKeys) {
