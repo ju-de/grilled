@@ -13,7 +13,8 @@ var assets = {
     fuel: {w: 28, h: 32},
     goat: {w: 54, h: 60},
     pole: {w: 8, h: 64},
-    fire: {w: 108, h: 256}
+    fire: {w: 108, h: 256},
+    meat: {w: 36, h: 18}
 }
 
 var fontName = 'Share Tech Mono';
@@ -50,7 +51,7 @@ function preload() {
     game.load.image('fuel_bar', 'assets/bar.gif');
     game.load.image('player1_gameover', 'assets/z1_icon_grilled.gif');
     game.load.image('player2_gameover', 'assets/z2_icon_grilled.gif');
-    game.load.image('meat', 'assets/meat.gif');
+    game.load.spritesheet('meat', 'assets/meat.gif', assets.meat.w, assets.meat.h);
 
 }
 
@@ -291,6 +292,7 @@ function update() {
     fuels.forEach(function(fuel) {
         fuel.body.position.x -= scrollSpeed;
     });
+    
     if (fuels.children.length > 0) {
         // Kill fuel once it leaves the screen
         var firstChild = fuels.getChildAt(0);
