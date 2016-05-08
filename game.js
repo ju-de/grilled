@@ -24,7 +24,7 @@ var fontName = 'Share Tech Mono';
 WebFontConfig = {
     active: function() { 
         // Need delay for some reason
-        game.time.events.add(200, createText, this);
+        game.time.events.add(1000, createText, this);
     },
     google: {
         families: [fontName]
