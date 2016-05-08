@@ -25,15 +25,6 @@ function preload() {
     game.load.spritesheet('fuel', 'assets/spritesheets/fuel.gif', assets.fuel.w, assets.fuel.h);
 }
 
-function Player(fuel, sprite) {
-    this.fuel = fuel;
-    this.sprite = sprite;
-
-    game.physics.arcade.enable(this.sprite);
-    this.sprite.body.collideWorldBounds = true;
-    this.sprite.body.gravity.y = 1500;
-}
-
 var groundHeight = 64;
 var scrollSpeed = 3;
 var maxFuelAmount = 500;
@@ -57,6 +48,22 @@ var fuelCounter1, fuelCounter2;
 
 var controlKeys1 = {};
 var controlKeys2 = {};
+
+function Player(fuel, sprite) {
+    this.fuel = fuel;
+    this.sprite = sprite;
+
+    game.physics.arcade.enable(this.sprite);
+    this.sprite.body.collideWorldBounds = true;
+    this.sprite.body.gravity.y = 1500;
+
+    this.addFuel = function() {
+        this.fuel += refillFuelAmount;
+        if (this.fuel > maxFuelAmount) {
+            this.fuel = maxFuelAmount;
+        }
+    }
+}
 
 function create() {
     game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -241,6 +248,8 @@ function updatePlayer(player, controlKeys) {
     // Check collision integerInRange player and ground
     game.physics.arcade.collide(playerSprite, groundCollidable);
 
+    var currentAnim = playerSprite.animations.currentAnim;
+
     // Fire rocket
     // Don't allow flying if something is on top of the player
     if (controlKeys.up.isDown && player.fuel > 0 && !playerSprite.body.touching.up) {
@@ -256,6 +265,20 @@ function updatePlayer(player, controlKeys) {
             velocity.y -= upAcceleration;
         }
         player.fuel--;
+
+        // Pause animation when accelerating upwards
+        if (!currentAnim.isFinished) {
+            playerSprite.animations.stop();
+        }
+        playerSprite.frame = 2;
+
+    }
+
+    // Player is on the ground/standing on something else
+    if (playerSprite.body.touching.down) {
+        if (currentAnim.isFinished) {
+            playerSprite.animations.play('idle', 8, true, false);
+        }
     }
 
     // Reset sprite rotation
@@ -272,12 +295,11 @@ function updatePlayer(player, controlKeys) {
         if (isRocketFired) {
             playerSprite.rotation = 0.2;
         }
-    } else if (playerSprite.body.touching.down || playerSprite.body.blocked.down) {
-        // Player is standing on top of something solid, stop horizontal sliding
+    } else if (playerSprite.body.touching.down) {
+        // Player is standing on top of something solid & not actively moving horizontally, so stop horizontal sliding
         velocity.x = 0;
     } else {
-        // Player is in the air
-        // Drag slows horizontal movement
+        // Player is in the air & not actively moving horizontally, so simulate drag and slow horizontal movement
         if (Math.abs(velocity.x) <= 3 ) {
             velocity.x = 0;
         } else if (velocity.x > 0) {
@@ -285,6 +307,15 @@ function updatePlayer(player, controlKeys) {
         } else if (velocity.x < 0) {
             velocity.x += 3;
         }
+
+        // Pause animation when free falling
+        if (!isRocketFired) {
+            if (!currentAnim.isFinished) {
+                playerSprite.animations.stop();
+            }
+            playerSprite.frame = 3;
+        }
+
     }
 
     var position = playerSprite.body.position;
@@ -300,20 +331,16 @@ function updatePlayer(player, controlKeys) {
     game.physics.arcade.overlap(playerSprite, lionsJumping, playerDeath, null, this);
 
     // Check if player is in contact with a fuel box
-    if (game.physics.arcade.overlap(playerSprite, fuels, collectFuel, null, this)) {
-        player.fuel += refillFuelAmount;
-        if (player.fuel > maxFuelAmount) {
-            player.fuel = maxFuelAmount;
-        }
-    }
+    game.physics.arcade.overlap(playerSprite, fuels, 
+        function(playerSprite, fuel) {
+            fuel.kill();
+            player.addFuel();
+        }, 
+        null, this);
 }
 
 function playerDeath(playerSprite, lion) {
     playerSprite.kill();
-}
-
-function collectFuel(playerSprite, fuel) {
-    fuel.kill();
 }
 
 function render() {
