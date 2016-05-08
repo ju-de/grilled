@@ -48,6 +48,9 @@ function preload() {
     game.load.image('player1_label', 'assets/indicator_ref_1.gif');
     game.load.image('player2_label', 'assets/indicator_ref_2.gif');
     game.load.image('fuel_bar', 'assets/bar.gif');
+    game.load.image('player1_gameover', 'assets/z1_icon_grilled.gif');
+    game.load.image('player2_gameover', 'assets/z2_icon_grilled.gif');
+
 }
 
 var groundHeight = 64;
@@ -104,13 +107,13 @@ function Player(fuel, fireSprite, sprite) {
 function createScoreCounters() {
     scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
     scoreCounter1.font = fontName;
-    scoreCounter1.fontSize = 22;
-    scoreCounter1.fill = '#ff0000';
+    scoreCounter1.fontSize = 16;
+    scoreCounter1.fill = '#78686F';
 
     scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
     scoreCounter2.font = fontName;
-    scoreCounter2.fontSize = 22;
-    scoreCounter2.fill = '#ff0000';
+    scoreCounter2.fontSize = 16;
+    scoreCounter2.fill = '#78686F';
 }
 
 function create() {
@@ -430,6 +433,21 @@ function updatePlayer(player, controlKeys) {
     function playerDeath(playerSprite, lion) {
         playerSprite.kill();
         player.fireSprite.kill();
+
+        if ( playerSprite === player1.sprite ){
+         
+            // game.add.text(120, 18, 'GRILLED');
+            game.add.sprite(12, 12, 'player2_gameover');
+
+        }
+
+        if ( playerSprite === player2.sprite ){
+
+            // game.add.text(120, 18, 'GRILLED');
+            game.add.sprite(game.world.width - 54 - 12, 12, 'player1_gameover');
+
+        }
+
     }
 
     function collectFuel(playerSprite, fuel) {
