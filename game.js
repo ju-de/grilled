@@ -22,7 +22,7 @@ var fontName = 'Share Tech Mono';
 WebFontConfig = {
     active: function() { 
         // Need delay for some reason
-        game.time.events.add(200, createText, this);
+        game.time.events.add(200, createScoreCounters, this);
     },
     google: {
         families: [fontName]
@@ -101,11 +101,16 @@ function Player(fuel, fireSprite, sprite) {
     }
 }
 
-function createText() {
-    // scoreCounter1 = game.add.text(0, 50, 'Score: ' + player1.score);
-    // scoreCounter1.font = fontName;
-    // scoreCounter1.fontSize = 22;
-    // scoreCounter1.fill = '#ff0000';
+function createScoreCounters() {
+    scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
+    scoreCounter1.font = fontName;
+    scoreCounter1.fontSize = 22;
+    scoreCounter1.fill = '#ff0000';
+
+    scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
+    scoreCounter2.font = fontName;
+    scoreCounter2.fontSize = 22;
+    scoreCounter2.fill = '#ff0000';
 }
 
 function create() {
@@ -430,11 +435,20 @@ function updatePlayer(player, controlKeys) {
     function collectFuel(playerSprite, fuel) {
         fuel.kill();
         player.addFuel();
+        player.score += 10;
+        updateScoreCounters();
     }
 
     function collectGoat(playerSprite, goat) {
         goat.kill();
+        player.score += 50;
+        updateScoreCounters();
     }
+}
+
+function updateScoreCounters() {
+    scoreCounter1.text = 'Score: ' + player1.score;
+    scoreCounter2.text = 'Score: ' + player2.score;
 }
 
 function render() {
