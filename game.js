@@ -126,14 +126,14 @@ function renewLionTimer() {
     
     if (lionTimer.running) {
         // Add new lion
-        if (game.rnd.integerInRange(0, 1) == 0) {
+        if (game.rnd.integerInRange(0, 3) != 0) {
             var lion = lionsRunning.create(game.world.width, game.world.height - groundHeight - assets.lion_run.h, 'lion_run');
             lion.body.allowGravity = false;
             lion.animations.add('run');
             lion.animations.play('run', 8, true, false);
         } else {
             var lion = lionsJumping.create(game.world.width, game.world.height - groundHeight - assets.lion_jump.h, 'lion_jump');
-            lion.body.allowGravity = false;
+            lion.body.gravity.y = 1500;
             lion.animations.add('jump');
             lion.animations.play('jump', 8, true, false);
         }
@@ -161,11 +161,23 @@ function update() {
     groundFront.tilePosition.x -= scrollSpeed;
     groundBack.tilePosition.x -= scrollSpeed;
 
+    // Check collisions between jumping lions and the ground
+    game.physics.arcade.collide(groundCollidable, lionsJumping);
+
     lionsRunning.forEach(function(lion) {
         lion.body.position.x -= scrollSpeed + 3;
     });
     lionsJumping.forEach(function(lion) {
         lion.body.position.x -= scrollSpeed;
+
+        // Small chance to jump up every sprite loop
+        var currentAnim = lion.animations.currentAnim;
+        if (currentAnim.frame == 3 && !currentAnim.paused && game.rnd.integerInRange(0, 10) == 0) {
+            currentAnim.paused = true;
+            lion.body.velocity.y = -game.rnd.integerInRange(600, 1000);
+        } else if (currentAnim.paused && lion.body.touching.down) {
+            currentAnim.paused = false;
+        }
     });
 
     // Remove lion once it leaves the screen
