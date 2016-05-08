@@ -50,6 +50,7 @@ function preload() {
     game.load.image('fuel_bar', 'assets/bar.gif');
     game.load.image('player1_gameover', 'assets/z1_icon_grilled.gif');
     game.load.image('player2_gameover', 'assets/z2_icon_grilled.gif');
+    game.load.image('meat', 'assets/meat.gif');
 
 }
 
@@ -77,6 +78,8 @@ var scoreCounter1, scoreCounter2;
 
 var controlKeys1 = {};
 var controlKeys2 = {};
+
+var emitter;
 
 function Player(fuel, fireSprite, sprite) {
     this.fuel = fuel;
@@ -171,6 +174,11 @@ function create() {
     controlKeys2.up = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     controlKeys2.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+
+    emitter = game.add.emitter(0, 0, 100);
+
+    emitter.makeParticles('meat');
+    emitter.gravity = 200;
 
 }
 
@@ -431,8 +439,14 @@ function updatePlayer(player, controlKeys) {
     game.physics.arcade.overlap(playerSprite, goat, collectGoat, null, this);
 
     function playerDeath(playerSprite, lion) {
+
         playerSprite.kill();
         player.fireSprite.kill();
+
+        emitter.x = playerSprite.x;
+        emitter.y = playerSprite.y;
+
+        emitter.start(true, 10000, null, 10);
 
         if ( playerSprite === player1.sprite ){
          
