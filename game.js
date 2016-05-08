@@ -12,7 +12,8 @@ var assets = {
     lion_jump: {w: 98, h: 130},
     fuel: {w: 28, h: 32},
     goat: {w: 54, h: 60},
-    pole: {w: 8, h: 64}
+    pole: {w: 8, h: 64},
+    fire: {w: 108, h: 256}
 }
 
 function preload() {
@@ -26,7 +27,9 @@ function preload() {
     game.load.spritesheet('lion_jump', 'assets/spritesheets/l2.gif', assets.lion_jump.w, assets.lion_jump.h);
     game.load.spritesheet('fuel', 'assets/spritesheets/fuel.gif', assets.fuel.w, assets.fuel.h);
     game.load.spritesheet('goat', 'assets/spritesheets/goat.gif', assets.goat.w, assets.goat.h);
-    game.load.image('pole', 'assets/pole.gif', assets.pole.w, assets.pole.h);
+    game.load.image('pole', 'assets/pole.gif');
+    game.load.spritesheet('fire1', 'assets/spritesheets/fire1.gif', assets.fire.w, assets.fire.h);
+    game.load.spritesheet('fire2', 'assets/spritesheets/fire2.gif', assets.fire.w, assets.fire.h);
 }
 
 var groundHeight = 64;
@@ -54,13 +57,22 @@ var fuelCounter1, fuelCounter2;
 var controlKeys1 = {};
 var controlKeys2 = {};
 
-function Player(fuel, sprite) {
+function Player(fuel, fireSprite, sprite) {
     this.fuel = fuel;
+
+    this.fireSprite = fireSprite;
+    this.fireSprite.scale.setTo(0.6, 0.6);
+    this.fireSprite.animations.add('fire');
+    this.fireSprite.animations.play('fire', 8, true, false);
+
     this.sprite = sprite;
+    this.sprite.scale.setTo(0.6, 0.6);
+    this.sprite.animations.add('idle');
+    this.sprite.animations.play('idle', 8, true, false);
 
     game.physics.arcade.enable(this.sprite);
     this.sprite.body.collideWorldBounds = true;
-    this.sprite.body.gravity.y = 1500;
+    this.sprite.body.gravity.y = 1500;    
 
     this.addFuel = function() {
         this.fuel += refillFuelAmount;
@@ -87,15 +99,14 @@ function create() {
     groundCollidable.body.allowGravity = false;
 
     // Init players
-    player1 = new Player(maxFuelAmount, game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'player1'));
-    player1.sprite.scale.setTo(0.6, 0.6);
-    player1.sprite.animations.add('idle');
-    player1.sprite.animations.play('idle', 8, true, false);
-
-    player2 = new Player(maxFuelAmount, game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'player2'));
-    player2.sprite.scale.setTo(0.6, 0.6);
-    player2.sprite.animations.add('idle');
-    player2.sprite.animations.play('idle', 8, true, false);
+    player1 = new Player(
+        maxFuelAmount,
+        game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'fire1'),
+        game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'player1'));
+    player2 = new Player(
+        maxFuelAmount, 
+        game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'fire2'),
+        game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'player2'));
 
     // Init other game objects
     lionsRunning = game.add.physicsGroup();
@@ -287,10 +298,14 @@ function updatePlayer(player, controlKeys) {
 
     var currentAnim = playerSprite.animations.currentAnim;
 
+    player.fireSprite.visible = false;
+
     // Fire rocket
     // Don't allow flying if something is on top of the player
     if (controlKeys.up.isDown && player.fuel > 0 && !playerSprite.body.touching.up) {
         isRocketFired = true;
+
+        player.fireSprite.visible = true;
 
         // Horizontal movement is faster with rocket
         horizontalMoveSpeed = 400;
@@ -308,7 +323,6 @@ function updatePlayer(player, controlKeys) {
             playerSprite.animations.stop();
         }
         playerSprite.frame = 2;
-
     }
 
     // Player is on the ground/standing on something else
@@ -363,28 +377,32 @@ function updatePlayer(player, controlKeys) {
         velocity.y = 0;
     }
 
+    player.fireSprite.position = position;
+    player.fireSprite.rotation = playerSprite.rotation;
+
     // Check if player is in contact with a lion
     game.physics.arcade.overlap(playerSprite, lionsRunning, playerDeath, null, this);
     game.physics.arcade.overlap(playerSprite, lionsJumping, playerDeath, null, this);
 
     // Fuel collection
-    game.physics.arcade.overlap(playerSprite, fuels, 
-        function(playerSprite, fuel) {
-            fuel.kill();
-            player.addFuel();
-        }, 
-        null, this);
+    game.physics.arcade.overlap(playerSprite, fuels, collectFuel, null, this);
 
     // Goat collection
-    game.physics.arcade.overlap(playerSprite, goat,
-        function(playerSprite, goat) {
-            goat.kill();
-        },
-        null, this);
-}
+    game.physics.arcade.overlap(playerSprite, goat, collectGoat, null, this);
 
-function playerDeath(playerSprite, lion) {
-    playerSprite.kill();
+    function playerDeath(playerSprite, lion) {
+        playerSprite.kill();
+        player.fireSprite.kill();
+    }
+
+    function collectFuel(playerSprite, fuel) {
+        fuel.kill();
+        player.addFuel();
+    }
+
+    function collectGoat(playerSprite, goat) {
+        goat.kill();
+    }
 }
 
 function render() {
