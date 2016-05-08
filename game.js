@@ -14,7 +14,8 @@ var assets = {
     goat: {w: 54, h: 60},
     pole: {w: 8, h: 64},
     fire: {w: 108, h: 256},
-    meat: {w: 36, h: 24}
+    meat: {w: 36, h: 24},
+    keys: {w: 144, h: 102}
 }
 
 var fontName = 'Share Tech Mono';
@@ -23,7 +24,7 @@ var fontName = 'Share Tech Mono';
 WebFontConfig = {
     active: function() { 
         // Need delay for some reason
-        game.time.events.add(200, createScoreCounters, this);
+        game.time.events.add(200, createText, this);
     },
     google: {
         families: [fontName]
@@ -52,7 +53,8 @@ function preload() {
     game.load.image('player1_gameover', 'assets/z1_icon_grilled.gif');
     game.load.image('player2_gameover', 'assets/z2_icon_grilled.gif');
     game.load.spritesheet('meat', 'assets/spritesheets/meat.gif', assets.meat.w, assets.meat.h);
-
+    game.load.spritesheet('keys1', 'assets/spritesheets/keys1.gif', assets.keys.w, assets.keys.h);
+    game.load.spritesheet('keys2', 'assets/spritesheets/keys2.gif', assets.keys.w, assets.keys.h);
 }
 
 var groundHeight = 64;
@@ -82,8 +84,12 @@ var meats;
 var fuelBar1, fuelBar2;
 var scoreCounter1, scoreCounter2;
 
+var title;
+var keys1, keys2;
+
 var controlKeys1 = {};
 var controlKeys2 = {};
+var startKey;
 
 var emitter;
 
@@ -113,8 +119,38 @@ var spawnSettings = {
     }
 }
 
-function Player(fuel, fireSprite, sprite) {
-    this.fuel = fuel;
+function resetSpawnSettings() {
+    spawnSettings = {
+        lionInterval: {
+            min: 7000,
+            max: 9000
+        },
+        lionGroupSize: {
+            min: 1,
+            max: 3
+        },
+        lionJumpingSpawn: 2,
+        lionJumpingChance: 1,
+        lionJumpingHeight: 800,
+        fuelInterval: {
+            min: 10000,
+            max: 15000
+        },
+        meatInterval: {
+            min: 1000,
+            max: 5000
+        },
+        goatInterval: {
+            min: 20000,
+            max: 25000
+        }
+    }
+}
+
+var defaultSpawnSettings = spawnSettings;
+
+function Player(fireSprite, sprite) {
+    this.fuel = maxFuelAmount;
     this.score = 0;
 
     this.fireSprite = fireSprite;
@@ -137,18 +173,14 @@ function Player(fuel, fireSprite, sprite) {
             this.fuel = maxFuelAmount;
         }
     }
-}
 
-function createScoreCounters() {
-    scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
-    scoreCounter1.font = fontName;
-    scoreCounter1.fontSize = 16;
-    scoreCounter1.fill = '#78686F';
-
-    scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
-    scoreCounter2.font = fontName;
-    scoreCounter2.fontSize = 16;
-    scoreCounter2.fill = '#78686F';
+    this.revive = function(x, y) {
+        this.sprite.revive();
+        this.fuel = maxFuelAmount;
+        this.score = 0;
+        this.sprite.body.position.setTo(x, y);
+        this.sprite.body.velocity.setTo(0, 0);
+    }
 }
 
 function create() {
@@ -166,33 +198,26 @@ function create() {
 
     // Init players
     player1 = new Player(
-        maxFuelAmount,
-        game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'fire1'),
-        game.add.sprite(100, game.world.height - groundHeight - assets.player.h, 'player1'));
+        game.add.sprite(100, -200, 'fire1'),
+        game.add.sprite(100, -200, 'player1'));
     player2 = new Player(
-        maxFuelAmount, 
-        game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'fire2'),
-        game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'player2'));
+        game.add.sprite(200, -200, 'fire2'),
+        game.add.sprite(200, -200, 'player2'));
 
     // Init other game objects
     gameTimer = game.time.create(this);
-    renewGameTimer();
 
     lionsRunning = game.add.physicsGroup();
     lionsJumping = game.add.physicsGroup();
     lionTimer = game.time.create(false);
-    renewLionTimer();
 
     fuels = game.add.physicsGroup();
     fuelTimer = game.time.create(false);
-    renewFuelTimer();
 
     meats = game.add.physicsGroup();
     meatTimer = game.time.create(false);
-    renewMeatTimer();
 
     goatTimer = game.time.create(false);
-    renewGopTimer();
 
     game.add.sprite(0, 5, 'player1_label');
     game.add.sprite(game.world.width - 256, 5, 'player2_label');
@@ -202,7 +227,6 @@ function create() {
     fuelBar2 = game.add.sprite(game.world.width - 85, 50, 'fuel_bar');
     fuelBar2.scale.setTo(-160, 1);
 
-
     controlKeys1.up = game.input.keyboard.addKey(Phaser.Keyboard.W);
     controlKeys1.left = game.input.keyboard.addKey(Phaser.Keyboard.A);
     controlKeys1.right = game.input.keyboard.addKey(Phaser.Keyboard.D);
@@ -210,6 +234,8 @@ function create() {
     controlKeys2.up = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     controlKeys2.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+
+    startKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
     emitter = game.add.emitter(0, 0, 100);
 
@@ -221,6 +247,118 @@ function create() {
     emitter.maxRotation = 0;
     emitter.setXSpeed(-400, 400);
     emitter.setYSpeed(-700, -300);
+
+    keys1 = game.add.sprite(game.world.width / 3, 300, 'keys1');
+    keys1.anchor.setTo(0.5, 0.5);
+    keys1.animations.add('keys');
+    keys1.animations.play('keys', 2, true, false);
+    keys2 = game.add.sprite(game.world.width * 2 / 3, 300, 'keys2');
+    keys2.anchor.setTo(0.5, 0.5);
+    keys2.animations.add('keys');
+    keys2.animations.play('keys', 2, true, false);
+}
+
+function createText() {
+    scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
+    scoreCounter1.font = fontName;
+    scoreCounter1.fontSize = 16;
+    scoreCounter1.fill = '#78686F';
+
+    scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
+    scoreCounter2.font = fontName;
+    scoreCounter2.fontSize = 16;
+    scoreCounter2.fill = '#78686F';
+
+    title = game.add.text(game.world.width / 2, 200, 'Press SPACE to begin!');
+    title.anchor.setTo(0.5, 0.5);
+    title.font = fontName;
+    title.fontSize = 48;
+    title.stroke = '#78686F';
+    title.strokeThickness = 4;
+    title.fill = '#FFFFFF';
+}
+
+function update() {
+    if (startKey.isDown && !gameTimer.running) {
+        startGame();
+    }
+    
+    updateEnvironment();    
+
+    game.physics.arcade.collide(player1.sprite, player2.sprite);
+
+    if (player1.sprite.alive) {
+        updatePlayer(player1, controlKeys1);
+        fuelBar1.scale.setTo(player1.fuel * 160 / maxFuelAmount, 1);
+        if (scoreCounter1 != null) {
+            scoreCounter1.text = 'Score: ' + Math.floor(player1.score);
+        }
+    }
+    if (player2.sprite.alive) {
+        updatePlayer(player2, controlKeys2);
+        fuelBar2.scale.setTo(- player2.fuel * 160 / maxFuelAmount, 1);
+        if (scoreCounter2 != null) {
+            scoreCounter2.text = 'Score: ' + Math.floor(player2.score);    
+        }
+    }
+
+    if (!player1.sprite.alive && !player2.sprite.alive) {
+        gameOver();
+    }
+}
+
+function startGame() {
+    title.visible = false;
+    keys1.kill();
+    keys2.kill();
+
+    renewGameTimer();
+    spawnLion();
+    spawnFuel();
+    spawnMeat();
+    spawnGoat();
+
+    // Restarting the game
+    if (!player1.sprite.alive && !player2.sprite.alive) {
+        player1.revive(100, 0);
+        player2.revive(200, 0);
+
+        lionsRunning.forEach(function(lion) {
+            lion.kill();
+        });
+        lionsJumping.forEach(function(lion) {
+            lion.kill();
+        });
+        fuels.forEach(function(fuel) {
+            fuel.kill();
+        });
+        meats.forEach(function(meat) {
+            meat.kill();
+        });
+        if (goat != null) {
+            goat.kill();
+        }
+        if (pole != null) {
+            pole.kill();
+        }
+        if (emitter != null) {
+            emitter.forEach(function(particle) {
+                particle.kill();
+            });
+        }
+    }
+}
+
+function gameOver() {
+    title.text = 'Game Over! Press SPACE to restart'
+    title.visible = true;
+
+    resetSpawnSettings();
+    gameTimer.stop();
+    lionTimer.stop();
+    fuelTimer.stop();
+    meatTimer.stop();
+    goatTimer.stop();
 }
 
 function renewGameTimer() {
@@ -270,8 +408,8 @@ function renewGameTimer() {
     }
 }
 
-function renewLionTimer() {
-    lionTimer.add(game.rnd.integerInRange(spawnSettings.lionInterval.min, spawnSettings.lionInterval.max), renewLionTimer, this);
+function spawnLion() {
+    lionTimer.add(game.rnd.integerInRange(spawnSettings.lionInterval.min, spawnSettings.lionInterval.max), spawnLion, this);
     
     if (lionTimer.running) {
         // Spawn clusters
@@ -293,8 +431,8 @@ function renewLionTimer() {
     }
 }
 
-function renewFuelTimer() {
-    fuelTimer.add(game.rnd.integerInRange(spawnSettings.fuelInterval.min, spawnSettings.fuelInterval.max), renewFuelTimer, this);
+function spawnFuel() {
+    fuelTimer.add(game.rnd.integerInRange(spawnSettings.fuelInterval.min, spawnSettings.fuelInterval.max), spawnFuel, this);
 
     if (fuelTimer.running) {
         var fuelBox = fuels.create(game.world.width, game.rnd.integerInRange(0, 400), 'fuel');
@@ -306,8 +444,8 @@ function renewFuelTimer() {
     }
 }
 
-function renewMeatTimer() {
-    meatTimer.add(game.rnd.integerInRange(spawnSettings.meatInterval.min, spawnSettings.meatInterval.max), renewMeatTimer, this);
+function spawnMeat() {
+    meatTimer.add(game.rnd.integerInRange(spawnSettings.meatInterval.min, spawnSettings.meatInterval.max), spawnMeat, this);
 
     if (meatTimer.running) {
         // Spawn cluster of 2-8
@@ -333,8 +471,8 @@ function renewMeatTimer() {
     }
 }
 
-function renewGopTimer() {
-    goatTimer.add(game.rnd.integerInRange(spawnSettings.goatInterval.min, spawnSettings.goatInterval.max), renewGopTimer, this);
+function spawnGoat() {
+    goatTimer.add(game.rnd.integerInRange(spawnSettings.goatInterval.min, spawnSettings.goatInterval.max), spawnGoat, this);
 
     if (goatTimer.running) {
         goat = game.add.sprite(game.world.width, game.world.height - groundHeight - assets.pole.h - assets.goat.h, 'goat');
@@ -350,8 +488,7 @@ function renewGopTimer() {
     }
 }
 
-function update() {
-
+function updateEnvironment() {
     // Scroll the environment
     groundFront.tilePosition.x -= scrollSpeed;
     groundBack.tilePosition.x -= scrollSpeed;
@@ -430,28 +567,12 @@ function update() {
             pole.kill();
         }
     }
-
-    game.physics.arcade.collide(player1.sprite, player2.sprite);
-
-    if (player1.sprite.alive) {
-        updatePlayer(player1, controlKeys1);
-        fuelBar1.scale.setTo(player1.fuel * 160 / maxFuelAmount, 1);
-        if (scoreCounter1 != null) {
-            scoreCounter1.text = 'Score: ' + Math.floor(player1.score);
-        }
-    }
-    if (player2.sprite.alive) {
-        updatePlayer(player2, controlKeys2);
-        fuelBar2.scale.setTo(- player2.fuel * 160 / maxFuelAmount, 1);
-        if (scoreCounter2 != null) {
-            scoreCounter2.text = 'Score: ' + Math.floor(player2.score);    
-        }
-    }
 }
 
 function updatePlayer(player, controlKeys) {
-
-    player.score += scrollSpeed / 50;
+    if (gameTimer.running) {
+        player.score += scrollSpeed / 50;
+    }
 
     // Movement physics settings
     var upAcceleration = 100;
@@ -486,7 +607,10 @@ function updatePlayer(player, controlKeys) {
         } else {
             velocity.y -= upAcceleration;
         }
-        player.fuel--;
+
+        if (gameTimer.running) {
+            player.fuel--;    
+        }
 
         // Pause animation when accelerating upwards
         if (!currentAnim.isFinished) {
@@ -614,9 +738,9 @@ function render() {
     // Debugging displays
     // game.debug.bodyInfo(player1.sprite, 0, 100);
     // game.debug.bodyInfo(player2.sprite, 0, 250);
-    game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
-    game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
-    game.debug.text('next goat in: ' + goatTimer.duration.toFixed(0), 16, 200);
-    game.debug.text('next meat in: ' + meatTimer.duration.toFixed(0), 16, 250)
-    game.debug.text('next difficulty in: ' + gameTimer.duration.toFixed(0), 16, 300);
+    // game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
+    // game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
+    // game.debug.text('next goat in: ' + goatTimer.duration.toFixed(0), 16, 200);
+    // game.debug.text('next meat in: ' + meatTimer.duration.toFixed(0), 16, 250)
+    // game.debug.text('next difficulty in: ' + gameTimer.duration.toFixed(0), 16, 300);
 }
