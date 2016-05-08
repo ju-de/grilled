@@ -178,8 +178,8 @@ function create() {
 
     emitter = game.add.emitter(0, 0, 100);
 
-    emitter.makeParticles('meat', 0, 250, 1, true);
-    emitter.gravity = 200;
+    emitter.makeParticles('meat', 0, 100, true, false);
+    emitter.gravity = 500;
     emitter.bounce.setTo(0.5, 0.5);
 
 }
@@ -466,20 +466,16 @@ function updatePlayer(player, controlKeys) {
         emitter.x = playerSprite.x;
         emitter.y = playerSprite.y;
 
-        emitter.start(true, 10000, null, 10);
+        emitter.start(true, 8000, 0, 8, 20);
 
         if ( playerSprite === player1.sprite ){
-         
             // game.add.text(120, 18, 'GRILLED');
             game.add.sprite(12, 12, 'player2_gameover');
-
         }
 
         if ( playerSprite === player2.sprite ){
-
             // game.add.text(120, 18, 'GRILLED');
             game.add.sprite(game.world.width - 54 - 12, 12, 'player1_gameover');
-
         }
 
     }
@@ -499,7 +495,7 @@ function updatePlayer(player, controlKeys) {
 
     function collectMeat(playerSprite, meat) {
         meat.kill();
-        player.score += 50;
+        player.score += 10;
         updateScoreCounters();
     }
 }
