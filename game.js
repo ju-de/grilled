@@ -64,6 +64,9 @@ var player1, player2;
 var collidables;
 var bg, groundFront, groundBack, groundCollidable;
 
+var gameTimer;
+var difficultyLevel = 0;
+
 var lionTimer;
 var lionsRunning;
 var lionsJumping;
@@ -81,6 +84,20 @@ var controlKeys1 = {};
 var controlKeys2 = {};
 
 var emitter;
+
+var spawnSettings = {
+    lionInterval: {
+        min: 7000,
+        max: 9000
+    },
+    lionGroupChance: 0,
+    lionJumpingSpawn: 2,
+    lionJumpingChance: 1,
+    goatInterval: {
+        min: 20000,
+        max: 25000
+    }
+}
 
 function Player(fuel, fireSprite, sprite) {
     this.fuel = fuel;
@@ -147,6 +164,9 @@ function create() {
         game.add.sprite(200, game.world.height - groundHeight - assets.player.h, 'player2'));
 
     // Init other game objects
+    gameTimer = game.time.create(this);
+    renewGameTimer();
+
     lionsRunning = game.add.physicsGroup();
     lionsJumping = game.add.physicsGroup();
     lionTimer = game.time.create(false);
@@ -184,31 +204,74 @@ function create() {
 
 }
 
+function renewGameTimer() {
+    difficultyLevel++;
+    gameTimer.add(10000, renewGameTimer, this);
+    if (gameTimer.running) {
+        // Update every 10s
+        scrollSpeed += 0.4;
+        if (scrollSpeed > 10) {
+            scrollSpeed = 10;
+        }
+        if (spawnSettings.lionGroupChance < 7) {
+            spawnSettings.lionGroupChance++;
+        }
+
+        // Update every 20s
+        if (difficultyLevel % 2 == 0) {
+            if (spawnSettings.lionJumpingSpawn < 5) {
+                spawnSettings.lionJumpingSpawn++;
+            }
+        } else {
+            if (spawnSettings.lionInterval.min > 1000) {
+                spawnSettings.lionInterval.min -= 1000;
+                spawnSettings.lionInterval.max -= 1000;
+            }
+            if (spawnSettings.goatInterval.min > 15000) {
+                spawnSettings.goatInterval.min -= 1000;
+                spawnSettings.goatInterval.max -= 1000;
+            }
+        }
+
+        // Update every 40s
+        if (difficultyLevel % 4 == 0) {
+            if (spawnSettings.lionJumpingChance < 5) {
+                spawnSettings.lionJumpingChance++;
+            }
+        }
+    } else {
+        gameTimer.start();
+    }
+}
+
 function renewLionTimer() {
     // Only spawn more lions if there are no more pending lions
     if (lionTimer.length <= 1) {
-        if (game.rnd.integerInRange(0, 10) < 3) {
+        if (game.rnd.integerInRange(0, 10) < spawnSettings.lionGroupChance) {
             // Small chance for lions to spawn in tight groups (2-5 including the current lion)
             for (var i = 0, groupSize = game.rnd.integerInRange(1, 4); i < groupSize; i++) {
                 lionTimer.add(500 * (i + 1), renewLionTimer, this);
             }
             // Add a "regular" spawn after the group so groups don't chain together
-            lionTimer.add(game.rnd.integerInRange(3000 + groupSize * 500, 7000 + groupSize * 500), renewLionTimer, this);
+            lionTimer.add(game.rnd.integerInRange(
+                spawnSettings.lionInterval.min + groupSize * 500, 
+                spawnSettings.lionInterval.max + groupSize * 500), 
+                renewLionTimer, this);
         } else {
             // Spawn lion at random intervals
-            lionTimer.add(game.rnd.integerInRange(3000, 7000), renewLionTimer, this);
+            lionTimer.add(game.rnd.integerInRange(spawnSettings.lionInterval.min, spawnSettings.lionInterval.max), renewLionTimer, this);
         }
     }
     
     if (lionTimer.running) {
         // Add new lion
-        if (game.rnd.integerInRange(0, 3) != 0) {
-            var lion = lionsRunning.create(game.world.width, game.world.height - groundHeight - assets.lion_run.h, 'lion_run');
+        if (game.rnd.integerInRange(0, 10) > spawnSettings.lionJumpingSpawn) {
+            var lion = lionsRunning.create(game.world.width, game.world.height - groundHeight - assets.lion_run.h - 10, 'lion_run');
             lion.body.allowGravity = false;
             lion.animations.add('run');
             lion.animations.play('run', 8, true, false);
         } else {
-            var lion = lionsJumping.create(game.world.width, game.world.height - groundHeight - assets.lion_jump.h, 'lion_jump');
+            var lion = lionsJumping.create(game.world.width, game.world.height - groundHeight - assets.lion_jump.h - 10, 'lion_jump');
             lion.body.gravity.y = 1500;
             lion.animations.add('jump');
             lion.animations.play('jump', 8, true, false);
@@ -233,7 +296,7 @@ function renewFuelTimer() {
 }
 
 function renewGopTimer() {
-    goatTimer.add(game.rnd.integerInRange(9000, 10000), renewGopTimer, this);
+    goatTimer.add(game.rnd.integerInRange(spawnSettings.goatInterval.min, spawnSettings.goatInterval.max), renewGopTimer, this);
 
     if (goatTimer.running) {
         goat = game.add.sprite(game.world.width, game.world.height - groundHeight - assets.pole.h - assets.goat.h, 'goat');
@@ -250,8 +313,6 @@ function renewGopTimer() {
 }
 
 function updateMeat(meat, ground) {
-
-    console.log('meat', meat.y, groundHeight);
 
     // meat.frame++;
     // meat.x -= scrollSpeed;
@@ -280,9 +341,9 @@ function update() {
 
         // Small chance to jump up every sprite loop
         var currentAnim = lion.animations.currentAnim;
-        if (currentAnim.frame == 3 && !currentAnim.paused && game.rnd.integerInRange(0, 10) == 0) {
+        if (currentAnim.frame == 3 && !currentAnim.paused && game.rnd.integerInRange(0, 10) < spawnSettings.lionJumpingChance) {
             currentAnim.paused = true;
-            lion.body.velocity.y = -game.rnd.integerInRange(600, 1000);
+            lion.body.velocity.y = -game.rnd.integerInRange(500, 900);
         } else if (currentAnim.paused && lion.body.touching.down) {
             currentAnim.paused = false;
         }
@@ -338,15 +399,22 @@ function update() {
     if (player1.sprite.alive) {
         updatePlayer(player1, controlKeys1);
         fuelBar1.scale.setTo(player1.fuel * 160 / maxFuelAmount, 1);
+        if (scoreCounter1 != null) {
+            scoreCounter1.text = 'Score: ' + Math.floor(player1.score);
+        }
     }
     if (player2.sprite.alive) {
         updatePlayer(player2, controlKeys2);
         fuelBar2.scale.setTo(- player2.fuel * 160 / maxFuelAmount, 1);
+        if (scoreCounter2 != null) {
+            scoreCounter2.text = 'Score: ' + Math.floor(player2.score);    
+        }
     }
-    
 }
 
 function updatePlayer(player, controlKeys) {
+
+    player.score += scrollSpeed / 100;
 
     // Movement physics settings
     var upAcceleration = 100;
@@ -484,25 +552,17 @@ function updatePlayer(player, controlKeys) {
         fuel.kill();
         player.addFuel();
         player.score += 10;
-        updateScoreCounters();
     }
 
     function collectGoat(playerSprite, goat) {
         goat.kill();
         player.score += 50;
-        updateScoreCounters();
     }
 
     function collectMeat(playerSprite, meat) {
         meat.kill();
         player.score += 10;
-        updateScoreCounters();
     }
-}
-
-function updateScoreCounters() {
-    scoreCounter1.text = 'Score: ' + player1.score;
-    scoreCounter2.text = 'Score: ' + player2.score;
 }
 
 function render() {
@@ -512,4 +572,5 @@ function render() {
     game.debug.text('next lion in: ' + lionTimer.duration.toFixed(0), 16, 100);
     game.debug.text('next fuel box in: ' + fuelTimer.duration.toFixed(0), 16, 150);
     game.debug.text('next goat in: ' + goatTimer.duration.toFixed(0), 16, 200);
+    game.debug.text('next difficulty in: ' + gameTimer.duration.toFixed(0), 16, 250);
 }
