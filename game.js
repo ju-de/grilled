@@ -148,8 +148,6 @@ function resetSpawnSettings() {
     }
 }
 
-var defaultSpawnSettings = spawnSettings;
-
 function Player(fireSprite, sprite) {
     this.fuel = maxFuelAmount;
     this.score = 0;
@@ -260,16 +258,20 @@ function create() {
 }
 
 function createText() {
-    scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
-    scoreCounter1.font = fontName;
-    scoreCounter1.fontSize = 16;
-    scoreCounter1.fill = '#78686F';
+    if (player1 != null) {
+        scoreCounter1 = game.add.text(120, 18, 'Score: ' + player1.score);
+        scoreCounter1.font = fontName;
+        scoreCounter1.fontSize = 16;
+        scoreCounter1.fill = '#78686F';
+    }
 
-    scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
-    scoreCounter2.font = fontName;
-    scoreCounter2.fontSize = 16;
-    scoreCounter2.fill = '#78686F';
-
+    if (player2 != null) {
+        scoreCounter2 = game.add.text(game.world.width - 244, 18, 'Score: ' + player2.score);
+        scoreCounter2.font = fontName;
+        scoreCounter2.fontSize = 16;
+        scoreCounter2.fill = '#78686F';
+    }
+    
     title = game.add.text(game.world.width / 2, 200, 'Press SPACE to begin!');
     title.anchor.setTo(0.5, 0.5);
     title.font = fontName;
