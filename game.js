@@ -92,9 +92,13 @@ var spawnSettings = {
         min: 7000,
         max: 9000
     },
-    lionGroupChance: 0,
+    lionGroupSize: {
+        min: 1,
+        max: 3
+    },
     lionJumpingSpawn: 2,
     lionJumpingChance: 1,
+    lionJumpingHeight: 800,
     fuelInterval: {
         min: 10000,
         max: 15000
@@ -228,8 +232,8 @@ function renewGameTimer() {
         if (scrollSpeed > 10) {
             scrollSpeed = 10;
         }
-        if (spawnSettings.lionGroupChance < 7) {
-            spawnSettings.lionGroupChance++;
+        if (spawnSettings.lionGroupSize.max < 7) {
+            spawnSettings.lionGroupSize.max++;
         }
 
         // Update every 20s
@@ -242,7 +246,7 @@ function renewGameTimer() {
                 spawnSettings.fuelInterval.max -= 1000;
             }
         } else {
-            if (spawnSettings.lionInterval.min > 1000) {
+            if (spawnSettings.lionInterval.min > 2000) {
                 spawnSettings.lionInterval.min -= 1000;
                 spawnSettings.lionInterval.max -= 1000;
             }
@@ -257,6 +261,9 @@ function renewGameTimer() {
             if (spawnSettings.lionJumpingChance < 5) {
                 spawnSettings.lionJumpingChance++;
             }
+            if (spawnSettings.lionJumpingHeight < 1200) {
+                spawnSettings.lionJumpingHeight += 100;
+            }
         }
     } else {
         gameTimer.start();
@@ -264,38 +271,23 @@ function renewGameTimer() {
 }
 
 function renewLionTimer() {
-    // Only spawn more lions if there are no more pending lions
-    if (lionTimer.length <= 1) {
-        if (game.rnd.integerInRange(0, 10) < spawnSettings.lionGroupChance) {
-            // Small chance for lions to spawn in tight groups (2-5 including the current lion)
-            for (var i = 0, groupSize = game.rnd.integerInRange(1, 4); i < groupSize; i++) {
-                lionTimer.add(500 * (i + 1), renewLionTimer, this);
-            }
-            // Add a "regular" spawn after the group so groups don't chain together
-            lionTimer.add(game.rnd.integerInRange(
-                spawnSettings.lionInterval.min + groupSize * 500, 
-                spawnSettings.lionInterval.max + groupSize * 500), 
-                renewLionTimer, this);
-        } else {
-            // Spawn lion at random intervals
-            lionTimer.add(game.rnd.integerInRange(spawnSettings.lionInterval.min, spawnSettings.lionInterval.max), renewLionTimer, this);
-        }
-    }
+    lionTimer.add(game.rnd.integerInRange(spawnSettings.lionInterval.min, spawnSettings.lionInterval.max), renewLionTimer, this);
     
     if (lionTimer.running) {
-        // Add new lion
-        if (game.rnd.integerInRange(0, 10) > spawnSettings.lionJumpingSpawn) {
-            var lion = lionsRunning.create(game.world.width, game.world.height - groundHeight - assets.lion_run.h - 10, 'lion_run');
-            lion.body.allowGravity = false;
-            lion.animations.add('run');
-            lion.animations.play('run', 8, true, false);
-        } else {
-            var lion = lionsJumping.create(game.world.width, game.world.height - groundHeight - assets.lion_jump.h - 10, 'lion_jump');
-            lion.body.gravity.y = 1500;
-            lion.animations.add('jump');
-            lion.animations.play('jump', 8, true, false);
+        // Spawn clusters
+        for (var i = 0, groupSize = game.rnd.integerInRange(spawnSettings.lionGroupSize.min, spawnSettings.lionGroupSize.max); i < groupSize; i++) {
+            if (game.rnd.integerInRange(0, 10) > spawnSettings.lionJumpingSpawn) {
+                var lion = lionsRunning.create(game.world.width + i * 100, game.world.height - groundHeight - assets.lion_run.h - 10, 'lion_run');
+                lion.body.allowGravity = false;
+                lion.animations.add('run');
+                lion.animations.play('run', 8, true, false);
+            } else {
+                var lion = lionsJumping.create(game.world.width + i * 100, game.world.height - groundHeight - assets.lion_jump.h - 10, 'lion_jump');
+                lion.body.gravity.y = 1500;
+                lion.animations.add('jump');
+                lion.animations.play('jump', 8, true, false);
+            }
         }
-        
     } else {
         lionTimer.start();
     }
@@ -319,8 +311,19 @@ function renewMeatTimer() {
 
     if (meatTimer.running) {
         // Spawn cluster of 2-8
-        for (var i = 0, groupSize = game.rnd.integerInRange(2, 8), height = game.rnd.integerInRange(0, game.world.height - groundHeight - assets.meat.h); i < groupSize; i++) {
-            var meat = meats.create(game.world.width + i * 50, height, 'meat');
+        var bottom = game.world.height - groundHeight - assets.meat.h;
+        for (var i = 0, 
+            groupSize = game.rnd.integerInRange(2, 8), 
+            height = game.rnd.integerInRange(0, bottom),
+            direction = game.rnd.integerInRange(-1, 1); 
+            i < groupSize; i++) {
+            var realHeight = height + direction * i * 20;
+            if (realHeight < 0) {
+                realHeight = 0;
+            } else if (realHeight > bottom) {
+                realHeight = bottom;
+            }
+            var meat = meats.create(game.world.width + i * 50, realHeight, 'meat');
             meat.body.allowGravity = false;
             meat.animations.add('idle');
             meat.animations.play('idle', 8, true, false);
@@ -367,7 +370,7 @@ function update() {
         var currentAnim = lion.animations.currentAnim;
         if (currentAnim.frame == 3 && !currentAnim.paused && game.rnd.integerInRange(0, 10) < spawnSettings.lionJumpingChance) {
             currentAnim.paused = true;
-            lion.body.velocity.y = -game.rnd.integerInRange(500, 900);
+            lion.body.velocity.y = -game.rnd.integerInRange(500, spawnSettings.lionJumpingHeight);
         } else if (currentAnim.paused && lion.body.touching.down) {
             currentAnim.paused = false;
         }
