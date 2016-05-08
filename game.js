@@ -178,8 +178,9 @@ function create() {
 
     emitter = game.add.emitter(0, 0, 100);
 
-    emitter.makeParticles('meat');
+    emitter.makeParticles('meat', 0, 250, 1, true);
     emitter.gravity = 200;
+    emitter.bounce.setTo(0.5, 0.5);
 
 }
 
@@ -292,7 +293,7 @@ function update() {
     fuels.forEach(function(fuel) {
         fuel.body.position.x -= scrollSpeed;
     });
-    
+
     if (fuels.children.length > 0) {
         // Kill fuel once it leaves the screen
         var firstChild = fuels.getChildAt(0);
