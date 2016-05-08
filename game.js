@@ -58,7 +58,6 @@ function preload() {
 }
 
 var groundHeight = 64;
-var scrollSpeed = 3;
 var maxFuelAmount = 500;
 var refillFuelAmount = 200;
 
@@ -67,6 +66,7 @@ var bg, groundFront, groundBack, groundCollidable;
 
 var gameTimer;
 var difficultyLevel = 0;
+var scrollSpeed = 3;
 
 var lionTimer;
 var lionsRunning;
@@ -336,6 +336,9 @@ function startGame() {
     if (!player1.sprite.alive && !player2.sprite.alive) {
         player1.revive(100, 0);
         player2.revive(200, 0);
+
+        difficultyLevel = 0;
+        scrollSpeed = 3;
 
         grilledText1.visible = false;
         grilledText2.visible = false;
@@ -718,7 +721,6 @@ function updatePlayer(player, controlKeys) {
         emitter.start(true, 8000, 0, 8);
 
         emitter.forEach(function(meat) {
-
             meat.animations.add('spin');
             meat.animations.play('spin', 8, true, false);
 
