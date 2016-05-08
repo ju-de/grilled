@@ -14,7 +14,7 @@ var assets = {
     goat: {w: 54, h: 60},
     pole: {w: 8, h: 64},
     fire: {w: 108, h: 256},
-    meat: {w: 36, h: 18}
+    meat: {w: 36, h: 24}
 }
 
 var fontName = 'Share Tech Mono';
@@ -51,7 +51,7 @@ function preload() {
     game.load.image('fuel_bar', 'assets/bar.gif');
     game.load.image('player1_gameover', 'assets/z1_icon_grilled.gif');
     game.load.image('player2_gameover', 'assets/z2_icon_grilled.gif');
-    game.load.spritesheet('meat', 'assets/meat.gif', assets.meat.w, assets.meat.h);
+    game.load.spritesheet('meat', 'assets/spritesheets/meat.gif', assets.meat.w, assets.meat.h);
 
 }
 
@@ -202,6 +202,9 @@ function create() {
     emitter.gravity = 500;
     emitter.bounce.setTo(0.5, 0.5);
 
+    emitter.minRotation = 0;
+    emitter.maxRotation = 0;
+
 }
 
 function renewGameTimer() {
@@ -312,17 +315,6 @@ function renewGopTimer() {
     }
 }
 
-function updateMeat(meat, ground) {
-
-    // meat.frame++;
-    // meat.x -= scrollSpeed;
-
-    // if ( meat.y + meat.height > game.world.height - groundHeight )
-    //     meat.y = groundHeight - meat.height;
-    
-
-}
-
 function update() {
 
     // Scroll the environment
@@ -331,7 +323,7 @@ function update() {
 
     // Check collisions between jumping lions and the ground
     game.physics.arcade.collide(groundCollidable, lionsJumping);
-    game.physics.arcade.collide(emitter, groundCollidable, updateMeat, null, this);
+    game.physics.arcade.collide(emitter, groundCollidable);
 
     lionsRunning.forEach(function(lion) {
         lion.body.position.x -= scrollSpeed + 3;
@@ -535,6 +527,13 @@ function updatePlayer(player, controlKeys) {
         emitter.y = playerSprite.y;
 
         emitter.start(true, 8000, 0, 8, 20);
+
+        emitter.forEach(function(meat) {
+
+            meat.animations.add('spin');
+            meat.animations.play('spin', 8, true, false);
+
+        });
 
         if ( playerSprite === player1.sprite ){
             // game.add.text(120, 18, 'GRILLED');
