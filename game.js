@@ -89,7 +89,7 @@ function Player(fuel, fireSprite, sprite) {
     this.fireSprite = fireSprite;
     this.fireSprite.scale.setTo(0.6, 0.6);
     this.fireSprite.animations.add('fire');
-    this.fireSprite.animations.play('fire', 8, true, false);
+    this.fireSprite.animations.play('fire', 16, true, false);
 
     this.sprite = sprite;
     this.sprite.scale.setTo(0.6, 0.6);
