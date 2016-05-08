@@ -9,7 +9,8 @@ var game = new Phaser.Game(1024, 640, Phaser.AUTO, '',
 var assets = {
     player: { w: 108, h: 192 },
     lion_run: { w: 102, h: 122 },
-    lion_jump: { w: 98, h: 130 }
+    lion_jump: { w: 98, h: 130 },
+    fuel: { w: 28, h: 32}    
 }
 
 function preload() {
@@ -21,7 +22,7 @@ function preload() {
     game.load.spritesheet('player2', 'assets/spritesheets/z2.gif', assets.player.w, assets.player.h);
     game.load.spritesheet('lion_run', 'assets/spritesheets/l1.gif', assets.lion_run.w, assets.lion_run.h);
     game.load.spritesheet('lion_jump', 'assets/spritesheets/l2.gif', assets.lion_jump.w, assets.lion_jump.h);
-    game.load.image('fuel', 'assets/fuel.png');
+    game.load.spritesheet('fuel', 'assets/spritesheets/fuel.gif', assets.fuel.w, assets.fuel.h);
 }
 
 function Player(fuel, sprite) {
@@ -150,6 +151,8 @@ function renewFuelTimer() {
     if (fuelTimer.running) {
         var fuelBox = fuels.create(game.world.width, game.rnd.integerInRange(0, 400), 'fuel');
         fuelBox.body.allowGravity = false;
+        fuelBox.animations.add('idle');
+        fuelBox.animations.play('idle', 8, true, false);
     } else {
         fuelTimer.start();
     }
