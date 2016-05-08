@@ -406,7 +406,7 @@ function update() {
 
 function updatePlayer(player, controlKeys) {
 
-    player.score += scrollSpeed / 100;
+    player.score += scrollSpeed / 50;
 
     // Movement physics settings
     var upAcceleration = 100;
@@ -550,7 +550,7 @@ function updatePlayer(player, controlKeys) {
     function collectFuel(playerSprite, fuel) {
         fuel.kill();
         player.addFuel();
-        player.score += 10;
+        player.score += 20;
     }
 
     function collectGoat(playerSprite, goat) {
