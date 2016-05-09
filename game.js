@@ -84,6 +84,7 @@ var meats;
 var fuelBar1, fuelBar2;
 var scoreCounter1, scoreCounter2;
 var grilledText1, grilledText2;
+var grilledOverlay1, grilledOverlay2;
 
 var title;
 var keys1, keys2;
@@ -151,6 +152,7 @@ function resetSpawnSettings() {
 function Player(fireSprite, sprite) {
     this.fuel = maxFuelAmount;
     this.score = 0;
+    this.goatPower = false;
 
     this.fireSprite = fireSprite;
     this.fireSprite.scale.setTo(0.6, 0.6);
@@ -255,6 +257,16 @@ function create() {
     keys2.anchor.setTo(0.5, 0.5);
     keys2.animations.add('keys');
     keys2.animations.play('keys', 2, true, false);
+
+    grilledOverlay1 = game.add.sprite(12, 12, 'player1_gameover');
+    grilledOverlay1.visible = false;
+    grilledOverlay2 = game.add.sprite(game.world.width - 54 - 12, 12, 'player2_gameover');
+    grilledOverlay2.visible = false;
+
+    game.time.events.add(1500, function() {
+        fontName = '';
+        createText();
+    }, this);
 }
 
 function createText() {
@@ -342,6 +354,9 @@ function startGame() {
 
         grilledText1.visible = false;
         grilledText2.visible = false;
+
+        grilledOverlay1.visible = false;
+        grilledOverlay2.visible = false;
 
         lionsRunning.forEach(function(lion) {
             lion.kill();
@@ -728,12 +743,11 @@ function updatePlayer(player, controlKeys) {
 
         if ( playerSprite === player1.sprite ){
             grilledText1.visible = true;
-            game.add.sprite(12, 12, 'player2_gameover');
+            grilledOverlay1.visible = true;
         }
 
         if ( playerSprite === player2.sprite ){
-            grilledText2.visible = true;
-            game.add.sprite(game.world.width - 54 - 12, 12, 'player1_gameover');
+            grilledOverlay2.visible = true;
         }
 
     }
