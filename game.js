@@ -86,6 +86,8 @@ var scoreCounter1, scoreCounter2;
 var grilledText1, grilledText2;
 var grilledOverlay1, grilledOverlay2;
 
+var textCreated = false;
+
 var title;
 var keys1, keys2;
 
@@ -95,31 +97,7 @@ var startKey;
 
 var emitter;
 
-var spawnSettings = {
-    lionInterval: {
-        min: 7000,
-        max: 9000
-    },
-    lionGroupSize: {
-        min: 1,
-        max: 3
-    },
-    lionJumpingSpawn: 2,
-    lionJumpingChance: 1,
-    lionJumpingHeight: 800,
-    fuelInterval: {
-        min: 10000,
-        max: 15000
-    },
-    meatInterval: {
-        min: 1000,
-        max: 5000
-    },
-    goatInterval: {
-        min: 20000,
-        max: 25000
-    }
-}
+var spawnSettings;
 
 function resetSpawnSettings() {
     spawnSettings = {
@@ -206,6 +184,8 @@ function create() {
         game.add.sprite(200, -200, 'player2'));
 
     // Init other game objects
+    resetSpawnSettings();
+
     gameTimer = game.time.create(this);
 
     lionsRunning = game.add.physicsGroup();
@@ -264,8 +244,11 @@ function create() {
     grilledOverlay2.visible = false;
 
     game.time.events.add(1500, function() {
-        fontName = '';
-        createText();
+        // If font could not be retrieved, generate text using default font
+        if (!textCreated) {
+            fontName = '';
+            createText();
+        }
     }, this);
 }
 
@@ -302,6 +285,8 @@ function createText() {
     grilledText2.fontSize = 16;
     grilledText2.fill = '#78686F';
     grilledText2.visible = false;
+
+    textCreated = true;
 }
 
 function update() {
@@ -334,6 +319,8 @@ function update() {
 }
 
 function startGame() {
+    if (!textCreated) return;
+
     title.visible = false;
     keys1.visible = false;
     keys2.visible = false;
@@ -741,12 +728,13 @@ function updatePlayer(player, controlKeys) {
 
         });
 
-        if ( playerSprite === player1.sprite ){
+        if (playerSprite === player1.sprite) {
             grilledText1.visible = true;
             grilledOverlay1.visible = true;
         }
 
-        if ( playerSprite === player2.sprite ){
+        if (playerSprite === player2.sprite) {
+            grilledText2.visible = true;
             grilledOverlay2.visible = true;
         }
 
