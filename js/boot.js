@@ -19,7 +19,6 @@ GrilledGame.Boot.prototype = {
         this.input.maxPointers = 1;
     },
     preload: function() {
-        this.load.image('preload-bg', 'assets/full-bg.gif');
         this.load.image('logo', 'assets/logo.gif');
     },
     create: function () {

@@ -1,5 +1,4 @@
 GrilledGame.Preloader = function(game) {
-    this.bg = null;
     this.logo = null;
 };
 
@@ -17,7 +16,7 @@ var assets = {
 
 GrilledGame.Preloader.prototype = {
     preload: function() {
-        this.bg = this.add.sprite(0, 0, 'preload-bg');
+        this.stage.setBackgroundColor(0xffaa9b);
         this.logo = this.add.sprite(this.world.width / 2, 180, 'logo');
         this.logo.anchor.setTo(0.5, 0.5);
         this.logo.scale.setTo(1.5, 1.5);
