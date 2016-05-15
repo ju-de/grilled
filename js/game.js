@@ -147,10 +147,6 @@ function create() {
     groundCollidable.body.immovable = true;
     groundCollidable.body.allowGravity = false;
 
-    logo = game.add.sprite(this.world.width / 2, 180, 'logo');
-    logo.anchor.setTo(0.5, 0.5);
-    logo.scale.setTo(1.5, 1.5);
-
     // Init players
     player1 = new Player(
         game.add.sprite(100, -200, 'fire1'),
@@ -158,6 +154,11 @@ function create() {
     player2 = new Player(
         game.add.sprite(200, -200, 'fire2'),
         game.add.sprite(200, -200, 'player2'));
+
+    // Draw logo
+    logo = game.add.sprite(this.world.width / 2, 180, 'logo');
+    logo.anchor.setTo(0.5, 0.5);
+    logo.scale.setTo(1.5, 1.5);
 
     // Init other game objects
     resetSpawnSettings();
@@ -302,6 +303,7 @@ function update() {
 function startGame() {
     if (!textCreated) return;
 
+    logo.visible = false;
     title.visible = false;
     keys1.visible = false;
     keys2.visible = false;
@@ -353,6 +355,7 @@ function startGame() {
 }
 
 function gameOver() {
+    logo.visible = true;
     title.text = 'Game Over! Press SPACE to restart'
     title.visible = true;
     keys1.visible = true;
