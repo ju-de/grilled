@@ -30,7 +30,7 @@ WebFontConfig = {
 
 var groundHeight = 64;
 var maxFuelAmount = 500;
-var refillFuelAmount = 200;
+var refillFuelAmount = 100;
 
 var player1, player2;
 var bg, groundFront, groundBack, groundCollidable;
@@ -83,8 +83,8 @@ function resetSpawnSettings() {
         lionJumpingChance: 1,
         lionJumpingHeight: 800,
         fuelInterval: {
-            min: 10000,
-            max: 15000
+            min: 7000,
+            max: 10000
         },
         meatInterval: {
             min: 1000,
@@ -109,8 +109,11 @@ function Player(fireSprite, sprite) {
 
     this.sprite = sprite;
     this.sprite.scale.setTo(0.6, 0.6);
-    this.sprite.animations.add('idle');
-    this.sprite.animations.play('idle', 8, true, false);
+    this.sprite.animations.add('idle', [0, 1, 2, 3], 8, true);
+    this.sprite.animations.add('goat', [4, 5, 6, 7], 8, true);
+    this.sprite.animations.add('goat_up', [6, 8], 8, true);
+    this.sprite.animations.add('goat_down', [7, 9], 8, true);
+    this.sprite.animations.play('idle');
 
     game.physics.arcade.enable(this.sprite);
     this.sprite.body.collideWorldBounds = true;
@@ -129,6 +132,13 @@ function Player(fireSprite, sprite) {
         this.score = 0;
         this.sprite.body.position.setTo(x, y);
         this.sprite.body.velocity.setTo(0, 0);
+    }
+
+    this.startGoatPower = function() {
+        this.goatPower = true;
+        game.time.events.add(10000, function() {
+            this.goatPower = false;
+        }, this);
     }
 }
 
@@ -387,7 +397,7 @@ function renewGameTimer() {
             if (spawnSettings.lionJumpingSpawn < 5) {
                 spawnSettings.lionJumpingSpawn++;
             }
-            if (spawnSettings.fuelInterval.min > 5000) {
+            if (spawnSettings.fuelInterval.min > 3000) {
                 spawnSettings.fuelInterval.min -= 1000;
                 spawnSettings.fuelInterval.max -= 1000;
             }
@@ -621,17 +631,23 @@ function updatePlayer(player, controlKeys) {
         }
 
         // Pause animation when accelerating upwards
-        if (!currentAnim.isFinished) {
-            playerSprite.animations.stop();
+        if (player.goatPower) {
+            if (currentAnim.name != 'goat_up' || currentAnim.isFinished) {
+                playerSprite.animations.stop();
+                playerSprite.animations.play('goat_up');
+            }
+        } else {    
+            if (!currentAnim.isFinished) {
+                playerSprite.animations.stop();
+            }
+            playerSprite.frame = 2;
         }
-        playerSprite.frame = 2;
+        
     }
 
     // Player is on the ground/standing on something else
     if (playerSprite.body.touching.down) {
-        if (currentAnim.isFinished) {
-            playerSprite.animations.play('idle', 8, true, false);
-        }
+        playerSprite.animations.play(player.goatPower ? 'goat' : 'idle');
     }
 
     // Reset sprite rotation
@@ -663,10 +679,17 @@ function updatePlayer(player, controlKeys) {
 
         // Pause animation when free falling
         if (!isRocketFired) {
-            if (!currentAnim.isFinished) {
-                playerSprite.animations.stop();
+            if (player.goatPower) {
+                if (currentAnim.name != 'goat_down' || currentAnim.isFinished) {
+                    playerSprite.animations.stop();
+                    playerSprite.animations.play('goat_down');
+                }
+            } else {
+                if (!currentAnim.isFinished) {
+                    playerSprite.animations.stop();
+                }
+                playerSprite.frame = 3;
             }
-            playerSprite.frame = 3;
         }
 
     }
@@ -683,8 +706,8 @@ function updatePlayer(player, controlKeys) {
     player.fireSprite.rotation = playerSprite.rotation;
 
     // Check if player is in contact with a lion
-    game.physics.arcade.overlap(playerSprite, lionsRunning, playerDeath, null, this);
-    game.physics.arcade.overlap(playerSprite, lionsJumping, playerDeath, null, this);
+    game.physics.arcade.overlap(playerSprite, lionsRunning, hitLion, null, this);
+    game.physics.arcade.overlap(playerSprite, lionsJumping, hitLion, null, this);
 
     // Fuel collection
     game.physics.arcade.overlap(playerSprite, fuels, collectFuel, null, this);
@@ -695,6 +718,14 @@ function updatePlayer(player, controlKeys) {
     // Meat collection
     game.physics.arcade.overlap(playerSprite, meats, collectMeat, null, this);
     game.physics.arcade.overlap(playerSprite, emitter, collectMeat, null, this);
+
+    function hitLion(playerSprite, lion) {
+        if (player.goatPower) {
+            lion.kill();
+        } else {
+            playerDeath(playerSprite, lion);
+        }
+    }
 
     function playerDeath(playerSprite, lion) {
 
@@ -733,6 +764,7 @@ function updatePlayer(player, controlKeys) {
     function collectGoat(playerSprite, goat) {
         goat.kill();
         player.score += 50;
+        player.startGoatPower();
     }
 
     function collectMeat(playerSprite, meat) {
