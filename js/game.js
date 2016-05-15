@@ -57,6 +57,7 @@ var scoreCounter1, scoreCounter2;
 var grilledText1, grilledText2;
 var grilledOverlay1, grilledOverlay2;
 
+var logo;
 var title;
 var keys1, keys2;
 
@@ -146,6 +147,10 @@ function create() {
     groundCollidable.body.immovable = true;
     groundCollidable.body.allowGravity = false;
 
+    logo = game.add.sprite(this.world.width / 2, 180, 'logo');
+    logo.anchor.setTo(0.5, 0.5);
+    logo.scale.setTo(1.5, 1.5);
+
     // Init players
     player1 = new Player(
         game.add.sprite(100, -200, 'fire1'),
@@ -200,15 +205,6 @@ function create() {
     emitter.setXSpeed(-400, 400);
     emitter.setYSpeed(-700, -300);
 
-    keys1 = game.add.sprite(game.world.width / 3, 300, 'keys1');
-    keys1.anchor.setTo(0.5, 0.5);
-    keys1.animations.add('keys');
-    keys1.animations.play('keys', 2, true, false);
-    keys2 = game.add.sprite(game.world.width * 2 / 3, 300, 'keys2');
-    keys2.anchor.setTo(0.5, 0.5);
-    keys2.animations.add('keys');
-    keys2.animations.play('keys', 2, true, false);
-
     grilledOverlay1 = game.add.sprite(12, 12, 'player1_gameover');
     grilledOverlay1.visible = false;
     grilledOverlay2 = game.add.sprite(game.world.width - 54 - 12, 12, 'player2_gameover');
@@ -243,7 +239,7 @@ function createText() {
         scoreCounter2.fill = '#78686F';
     }
     
-    title = game.add.text(game.world.width / 2, 200, 'Press SPACE to begin!');
+    title = game.add.text(game.world.width / 2, 300, 'Press SPACE to begin!');
     title.anchor.setTo(0.5, 0.5);
     title.font = fontName;
     title.fontSize = 48;
@@ -261,6 +257,15 @@ function createText() {
     grilledText2.fontSize = 16;
     grilledText2.fill = '#78686F';
     grilledText2.visible = false;
+
+    keys1 = game.add.sprite(game.world.width / 3, 400, 'keys1');
+    keys1.anchor.setTo(0.5, 0.5);
+    keys1.animations.add('keys');
+    keys1.animations.play('keys', 2, true, false);
+    keys2 = game.add.sprite(game.world.width * 2 / 3, 400, 'keys2');
+    keys2.anchor.setTo(0.5, 0.5);
+    keys2.animations.add('keys');
+    keys2.animations.play('keys', 2, true, false);
 
     textCreated = true;
 }

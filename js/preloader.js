@@ -1,4 +1,7 @@
-GrilledGame.Preloader = function(game) {};
+GrilledGame.Preloader = function(game) {
+    this.bg = null;
+    this.logo = null;
+};
 
 var assets = {
     player: {w: 108, h: 192},
@@ -14,6 +17,11 @@ var assets = {
 
 GrilledGame.Preloader.prototype = {
     preload: function() {
+        this.bg = this.add.sprite(0, 0, 'preload-bg');
+        this.logo = this.add.sprite(this.world.width / 2, 180, 'logo');
+        this.logo.anchor.setTo(0.5, 0.5);
+        this.logo.scale.setTo(1.5, 1.5);
+
         console.log("Preloading");
         this.load.script('webfont', '//ajax.googleapis.com/ajax/libs/webfont/1.4.7/webfont.js');
 
