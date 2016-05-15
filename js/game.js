@@ -213,8 +213,8 @@ function create() {
 
     emitter.minRotation = 0;
     emitter.maxRotation = 0;
-    emitter.setXSpeed(-400, 400);
-    emitter.setYSpeed(-700, -300);
+    emitter.setXSpeed(-350, 350);
+    emitter.setYSpeed(-600, -300);
 
     grilledOverlay1 = game.add.sprite(12, 12, 'player1_gameover');
     grilledOverlay1.visible = false;
@@ -511,7 +511,7 @@ function updateEnvironment() {
     groundFront.tilePosition.x -= scrollSpeed;
     groundBack.tilePosition.x -= scrollSpeed;
 
-    // Check collisions between jumping lions and the ground
+    // Ground collision for game objects
     game.physics.arcade.collide(groundCollidable, lionsJumping);
     game.physics.arcade.collide(emitter, groundCollidable);
 
@@ -722,6 +722,15 @@ function updatePlayer(player, controlKeys) {
     function hitLion(playerSprite, lion) {
         if (player.goatPower) {
             lion.kill();
+
+            emitter.x = lion.x;
+            emitter.y = lion.y;
+            emitter.start(true, 8000, 3, 3);
+
+            emitter.forEach(function(meat) {
+                meat.animations.add('spin');
+                meat.animations.play('spin', 8, true, false);
+            });
         } else {
             playerDeath(playerSprite, lion);
         }
@@ -735,7 +744,7 @@ function updatePlayer(player, controlKeys) {
         emitter.x = playerSprite.x;
         emitter.y = playerSprite.y;
 
-        emitter.start(true, 8000, 0, 8);
+        emitter.start(true, 8000, 8, 8);
 
         emitter.forEach(function(meat) {
             meat.animations.add('spin');
