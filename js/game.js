@@ -744,7 +744,8 @@ function updatePlayer(player, controlKeys) {
         emitter.x = playerSprite.x;
         emitter.y = playerSprite.y;
 
-        emitter.start(true, 8000, 8, 8);
+        var meatAmount = Math.ceil(player.score/50);
+        emitter.start(true, 8000, meatAmount, meatAmount);
 
         emitter.forEach(function(meat) {
             meat.animations.add('spin');
