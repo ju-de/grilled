@@ -202,6 +202,7 @@ function create() {
     controlKeys2.up = game.input.keyboard.addKey(Phaser.Keyboard.UP);
     controlKeys2.left = game.input.keyboard.addKey(Phaser.Keyboard.LEFT);
     controlKeys2.right = game.input.keyboard.addKey(Phaser.Keyboard.RIGHT);
+    controlKeys2.down = game.input.keyboard.addKey(Phaser.Keyboard.DOWN);   // capture the down key so that it doesn't scroll the page down inadvertently
 
     startKey = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
